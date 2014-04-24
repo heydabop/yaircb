@@ -11,6 +11,10 @@ import(
 	"runtime"
 )
 
+type command func(*textproto.Conn, string, string, string)
+
+var funcMap map[string]command = make(map[string]command)
+
 func errOut(err error){
 	fmt.Println("ERROR: ", err.Error())
 	var trace []byte
@@ -73,5 +77,8 @@ func main(){
 	}
 	wg.Add(1)
 	go readFromConsole(socket, wg)
+	source(socket, "#ttestt", "", "")
+	f := funcMap["source"]
+	f(socket, "#ttestt", "", "")
 	wg.Wait()
 }
