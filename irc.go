@@ -7,12 +7,18 @@ import(
 	"sync"
 	"os"
 	"bufio"
+	"regexp"
 )
 
 func readToConsole(socket *textproto.Conn, wg sync.WaitGroup){
+	pingRegex := regexp.MustCompile("PING (.*)")
 	line, line_err := socket.Reader.ReadLine()
 	for ; line_err == nil; line, line_err = socket.Reader.ReadLine() {
 		fmt.Println(line)
+		if match := pingRegex.FindStringSubmatch(line); match != nil {
+			socket.Writer.PrintfLine("PONG ", match[1])
+			fmt.Println("PONG", match[1])
+		}
 	}
 	if line_err != nil {
 		fmt.Println("LINE ERROR: ", line_err.Error())
@@ -45,7 +51,7 @@ func main(){
 	if write_err != nil {
 		fmt.Println("WRITE ERROR: ", write_err)
 	}
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go readToConsole(socket, wg)
