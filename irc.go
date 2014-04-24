@@ -11,7 +11,7 @@ import(
 )
 
 func readToConsole(socket *textproto.Conn, wg sync.WaitGroup){
-	pingRegex := regexp.MustCompile("PING (.*)")
+	pingRegex := regexp.MustCompile("^PING (.*)")
 	line, line_err := socket.Reader.ReadLine()
 	for ; line_err == nil; line, line_err = socket.Reader.ReadLine() {
 		fmt.Println(line)
