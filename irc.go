@@ -8,7 +8,15 @@ import(
 	"os"
 	"bufio"
 	"regexp"
+	"runtime"
 )
+
+func errOut(err error){
+	fmt.Println("ERROR: ", err.Error())
+	var trace []byte
+	runtime.Stack(trace, false)
+	fmt.Print(trace)
+}
 
 func readToConsole(socket *textproto.Conn, wg sync.WaitGroup){
 	pingRegex := regexp.MustCompile("^PING (.*)")
@@ -21,7 +29,7 @@ func readToConsole(socket *textproto.Conn, wg sync.WaitGroup){
 		}
 	}
 	if line_err != nil {
-		fmt.Println("LINE ERROR: ", line_err.Error())
+		errOut(line_err)
 	}
 	wg.Done()
 }
@@ -32,11 +40,11 @@ func readFromConsole(socket *textproto.Conn, wg sync.WaitGroup){
 	for ; err == nil; str, _, err = in.ReadLine() {
 		write_err := socket.Writer.PrintfLine(string(str))
 		if write_err != nil {
-			fmt.Println("ERROR: ", write_err.Error())
+			errOut(write_err)
 		}
 	}
 	if err != nil {
-		fmt.Println("ERROR: ", err.Error())
+		errOut(err)
 	}
 	wg.Done()
 }
@@ -44,12 +52,12 @@ func readFromConsole(socket *textproto.Conn, wg sync.WaitGroup){
 func main(){
 	socket, err := textproto.Dial("tcp", "irc.tamu.edu:6667")
 	if err != nil {
-		fmt.Println("ERROR: ", err.Error())
+		errOut(err)
 		return
 	}
 	write_err := socket.Writer.PrintfLine("NICK yaircb")
 	if write_err != nil {
-		fmt.Println("WRITE ERROR: ", write_err)
+		errOut(write_err)
 	}
 	time.Sleep(1 * time.Second)
 	var wg sync.WaitGroup
@@ -57,11 +65,11 @@ func main(){
 	go readToConsole(socket, wg)
 	write_err = socket.Writer.PrintfLine("USER yaircb * * gobot")
 	if write_err != nil {
-		fmt.Println("WRITE ERROR: ", write_err)
+		errOut(write_err)
 	}
 	write_err = socket.Writer.PrintfLine("JOIN #ttestt")
 	if write_err != nil {
-		fmt.Println("WRITE ERROR: ", write_err)
+		errOut(write_err)
 	}
 	wg.Add(1)
 	go readFromConsole(socket, wg)
