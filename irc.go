@@ -23,15 +23,16 @@ func errOut(err error){
 }
 
 func writeToServer(w textproto.Writer, srvChan chan string, wg sync.WaitGroup) {
+	defer wg.Done()
 	err := w.PrintfLine(<-srvChan)
 	for ; err == nil; w.PrintfLine(<-srvChan) {}
 	if err != nil {
 		errOut(err)
 	}
-	wg.Done()
 }
 
 func writeToConsole(r textproto.Reader, srvChan chan string, wg sync.WaitGroup){
+	defer wg.Done()
 	pingRegex := regexp.MustCompile("^PING (.*)")
 	line, line_err := r.ReadLine()
 	for ; line_err == nil; line, line_err = r.ReadLine() {
@@ -44,10 +45,10 @@ func writeToConsole(r textproto.Reader, srvChan chan string, wg sync.WaitGroup){
 	if line_err != nil {
 		errOut(line_err)
 	}
-	wg.Done()
 }
 
 func readFromConsole(srvChan chan string, wg sync.WaitGroup){
+	defer wg.Done()
 	in := bufio.NewReader(os.Stdin)
 	str, _, err := in.ReadLine()
 	for ; err == nil; str, _, err = in.ReadLine() {
@@ -56,7 +57,6 @@ func readFromConsole(srvChan chan string, wg sync.WaitGroup){
 	if err != nil {
 		errOut(err)
 	}
-	wg.Done()
 }
 
 func main(){
