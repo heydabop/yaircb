@@ -22,13 +22,22 @@ func errOut(err error){
 	fmt.Print(trace)
 }
 
-func readToConsole(socket *textproto.Conn, wg sync.WaitGroup){
+func writeToServer(w textproto.Writer, srvChan chan string, wg sync.WaitGroup) {
+	err := w.PrintfLine(<-srvChan)
+	for ; err == nil; w.PrintfLine(<-srvChan) {}
+	if err != nil {
+		errOut(err)
+	}
+	wg.Done()
+}
+
+func writeToConsole(r textproto.Reader, srvChan chan string, wg sync.WaitGroup){
 	pingRegex := regexp.MustCompile("^PING (.*)")
-	line, line_err := socket.Reader.ReadLine()
-	for ; line_err == nil; line, line_err = socket.Reader.ReadLine() {
+	line, line_err := r.ReadLine()
+	for ; line_err == nil; line, line_err = r.ReadLine() {
 		fmt.Println(line)
 		if match := pingRegex.FindStringSubmatch(line); match != nil {
-			socket.Writer.PrintfLine("PONG ", match[1])
+			srvChan <- ("PONG " + match[1])
 			fmt.Println("PONG", match[1])
 		}
 	}
@@ -38,14 +47,11 @@ func readToConsole(socket *textproto.Conn, wg sync.WaitGroup){
 	wg.Done()
 }
 
-func readFromConsole(socket *textproto.Conn, wg sync.WaitGroup){
+func readFromConsole(srvChan chan string, wg sync.WaitGroup){
 	in := bufio.NewReader(os.Stdin)
 	str, _, err := in.ReadLine()
 	for ; err == nil; str, _, err = in.ReadLine() {
-		write_err := socket.Writer.PrintfLine(string(str))
-		if write_err != nil {
-			errOut(write_err)
-		}
+		srvChan <- string(str)
 	}
 	if err != nil {
 		errOut(err)
@@ -54,29 +60,33 @@ func readFromConsole(socket *textproto.Conn, wg sync.WaitGroup){
 }
 
 func main(){
+	srvChan := make(chan string)
 	socket, err := textproto.Dial("tcp", "irc.tamu.edu:6667")
 	if err != nil {
 		errOut(err)
 		return
 	}
-	write_err := socket.Writer.PrintfLine("NICK yaircb")
+	r := socket.Reader
+	w := socket.Writer
+	write_err := w.PrintfLine("NICK yaircb")
 	if write_err != nil {
 		errOut(write_err)
 	}
 	time.Sleep(1 * time.Second)
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go readToConsole(socket, wg)
-	write_err = socket.Writer.PrintfLine("USER yaircb * * gobot")
+	go writeToConsole(r, srvChan, wg)
+	write_err = w.PrintfLine("USER yaircb * * gobot")
 	if write_err != nil {
 		errOut(write_err)
 	}
-	write_err = socket.Writer.PrintfLine("JOIN #ttestt")
+	write_err = w.PrintfLine("JOIN #ttestt")
 	if write_err != nil {
 		errOut(write_err)
 	}
-	wg.Add(1)
-	go readFromConsole(socket, wg)
+	wg.Add(2)
+	go writeToServer(w, srvChan, wg)
+	go readFromConsole(srvChan, wg)
 	source(socket, "#ttestt", "", "")
 	f := funcMap["source"]
 	f(socket, "#ttestt", "", "")
