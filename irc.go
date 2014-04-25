@@ -68,21 +68,21 @@ func main(){
 	}
 	r := socket.Reader
 	w := socket.Writer
-	write_err := w.PrintfLine("NICK yaircb")
-	if write_err != nil {
-		errOut(write_err)
+	err = w.PrintfLine("NICK yaircb")
+	if err != nil {
+		errOut(err)
 	}
 	time.Sleep(1 * time.Second)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go writeToConsole(r, srvChan, wg)
-	write_err = w.PrintfLine("USER yaircb * * gobot")
-	if write_err != nil {
-		errOut(write_err)
+	err = w.PrintfLine("USER yaircb * * yaircb")
+	if err != nil {
+		errOut(err)
 	}
-	write_err = w.PrintfLine("JOIN #ttestt")
-	if write_err != nil {
-		errOut(write_err)
+	err = w.PrintfLine("JOIN #ttestt")
+	if err != nil {
+		errOut(err)
 	}
 	wg.Add(2)
 	go writeToServer(w, srvChan, wg)
