@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"runtime"
 	"sync"
-	"time"
 )
 
 //output err
@@ -77,7 +76,6 @@ func main() {
 	if err != nil {
 		errOut(err)
 	}
-	time.Sleep(1 * time.Second)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	//launch routine to write server output to console
