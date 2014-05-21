@@ -32,11 +32,11 @@ func writeToServer(socket *textproto.Conn, srvChan chan string, wg *sync.WaitGro
 	defer fmt.Println("WTS")
 	w := socket.Writer
 	err := w.PrintfLine(<-srvChan)
-	for ; err == nil; {
+	for err == nil {
 		select {
-		case <- quit:
+		case <-quit:
 			return
-		case str := <- srvChan:
+		case str := <-srvChan:
 			err = w.PrintfLine(str)
 		}
 	}
@@ -55,7 +55,7 @@ func writeToConsole(socket *textproto.Conn, srvChan chan string, wg *sync.WaitGr
 	line, line_err := r.ReadLine()
 	for ; line_err == nil; line, line_err = r.ReadLine() {
 		select {
-		case <- quit:
+		case <-quit:
 			return
 		default:
 		}
