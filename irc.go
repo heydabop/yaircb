@@ -11,11 +11,6 @@ import (
 	"time"
 )
 
-//used for calling functions using string variable contents
-type command func(chan string, string, string, string)
-
-var funcMap map[string]command = make(map[string]command)
-
 //output err
 func errOut(err error) {
 	fmt.Println("ERROR: ", err.Error())
@@ -66,6 +61,7 @@ func readFromConsole(srvChan chan string, wg sync.WaitGroup) {
 }
 
 func main() {
+	funcMap := initMap()
 	srvChan := make(chan string)
 	//initiate connection
 	socket, err := textproto.Dial("tcp", "irc.tamu.edu:6667")
@@ -100,7 +96,6 @@ func main() {
 	go writeToServer(w, srvChan, wg)
 	go readFromConsole(srvChan, wg)
 	//test function map
-	funcMap["source"] = command(source)
 	f, fValid := funcMap["source"]
 	if fValid {
 		f(srvChan, "#ttestt", "", "")
