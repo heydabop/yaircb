@@ -18,7 +18,7 @@ func errOut(err error, quit chan bool) {
 	fmt.Print(trace)
 	if err.Error() == "EOF" {
 		fmt.Println("EXITING")
-		for i := 0; i < 3; i++ {
+		for i := 0; i < 2; i++ {
 			quit <- true
 		}
 		fmt.Println("QUITS SENT")
@@ -76,12 +76,11 @@ func readFromConsole(srvChan chan string, wg *sync.WaitGroup, quit chan bool) {
 	defer fmt.Println("RFC")
 	in := bufio.NewScanner(os.Stdin)
 	for in.Scan() {
-		select {
-		case <- quit:
+		str := in.Text()
+		srvChan <- str
+		if str == "QUIT" {
 			return
-		default:
 		}
-		srvChan <- in.Text()
 	}
 	if err := in.Err(); err != nil {
 		errOut(err, quit)
