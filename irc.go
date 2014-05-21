@@ -49,13 +49,12 @@ func writeToConsole(r textproto.Reader, srvChan chan string, wg sync.WaitGroup) 
 //read input from console and send to srvChan
 func readFromConsole(srvChan chan string, wg sync.WaitGroup) {
 	defer wg.Done()
-	in := bufio.NewReader(os.Stdin)
-	str, _, err := in.ReadLine()
-	for ; err == nil; str, _, err = in.ReadLine() {
-		srvChan <- string(str)
+	in := bufio.NewScanner(os.Stdin)
+	for in.Scan() {
+		srvChan <- in.Text()
 	}
-	if err != nil {
 		errOut(err)
+	if err := in.Err(); err != nil {
 	}
 }
 
