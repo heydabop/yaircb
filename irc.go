@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"runtime"
 	"sync"
+	"time"
 )
 
 //output err
@@ -90,35 +91,38 @@ func readFromConsole(srvChan chan string, wg *sync.WaitGroup, quit chan bool) {
 func main() {
 	//funcMap := initMap()
 	srvChan := make(chan string)
-	//initiate connection
-	socket, err := textproto.Dial("tcp", "irc.tamu.edu:6667")
-	quit := make(chan bool, 3)
-	if err != nil {
-		errOut(err, quit)
-		return
-	}
-	//make writer/reader to/from server
-	//send initial IRC messages, NICK and USER
-	err = socket.Writer.PrintfLine("NICK yaircb")
-	if err != nil {
-		errOut(err, quit)
-	}
 	var wg sync.WaitGroup
-	wg.Add(1)
-	//launch routine to write server output to console
-	go writeToConsole(socket, srvChan, &wg, quit)
-	err = socket.Writer.PrintfLine("USER yaircb * * yaircb")
-	if err != nil {
-		errOut(err, quit)
+	quit := make(chan bool, 2)
+	//initiate connection
+	go readFromConsole(srvChan, &wg, quit) //doesnt get restarted on connection EOF
+	for {
+		socket, err := textproto.Dial("tcp", "irc.tamu.edu:6667")
+		if err != nil {
+			errOut(err, quit)
+			return
+		}
+		//make writer/reader to/from server
+		//send initial IRC messages, NICK and USER
+		err = socket.Writer.PrintfLine("NICK yaircb")
+		if err != nil {
+			errOut(err, quit)
+		}
+		wg.Add(1)
+		//launch routine to write server output to console
+		go writeToConsole(socket, srvChan, &wg, quit)
+		err = socket.Writer.PrintfLine("USER yaircb * * yaircb")
+		if err != nil {
+			errOut(err, quit)
+		}
+		//join first channel
+		err = socket.Writer.PrintfLine("JOIN #ttestt")
+		if err != nil {
+			errOut(err, quit)
+		}
+		wg.Add(2)
+		//launch routine to send to server and get input from console
+		go writeToServer(socket, srvChan, &wg, quit)
+		wg.Wait()
+		time.Sleep(60 * time.Second)
 	}
-	//join first channel
-	err = socket.Writer.PrintfLine("JOIN #ttestt")
-	if err != nil {
-		errOut(err, quit)
-	}
-	wg.Add(2)
-	//launch routine to send to server and get input from console
-	go writeToServer(socket, srvChan, &wg, quit)
-	go readFromConsole(srvChan, &wg, quit)
-	wg.Wait()
 }
