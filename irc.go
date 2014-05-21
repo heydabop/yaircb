@@ -46,7 +46,6 @@ func writeToServer(socket *textproto.Conn, srvChan chan string, wg *sync.WaitGro
 	//print error and exit
 	if err != nil {
 		errOut(err, quit)
-		quit <- true //errOut might not do this, need to change error handling
 		socket.Close()
 	}
 }
@@ -77,7 +76,6 @@ func writeToConsole(socket *textproto.Conn, srvChan chan string, wg *sync.WaitGr
 	//print error and exit
 	if line_err != nil {
 		errOut(line_err, quit)
-		quit <- true //errOut might not do this, need to change error handling
 		socket.Close()
 	}
 }
@@ -107,7 +105,8 @@ func readFromConsole(srvChan chan string, wg *sync.WaitGroup, quit chan bool, er
 
 func main() {
 	//funcMap := initMap()
-	srvChan := make(chan string)
+	var conns uint16
+	srvChan := make(chan string) //used to send strings from readFromConsole to writeToServer
 	//wgSrv for goroutines to/from sever, wg for readFromConsole
 	var wgSrv, wg sync.WaitGroup
 	quit := make(chan bool, 2)  //used to indicate server to/from goroutines need to exit
@@ -116,11 +115,16 @@ func main() {
 	wg.Add(1)
 	go readFromConsole(srvChan, &wg, quit, error) //doesnt get restarted on connection EOF
 connectionLoop:
-	for {
+	for ; ; conns++ {
 		select {
 		case <-error: //if readFromConsole got a "QUIT", exit program
 			break connectionLoop
 		default: //otherwise restart connections
+			if conns == 0 {
+				fmt.Println("STARTING...")
+			} else {
+				fmt.Println("RESTARTING...")
+			}
 			socket, err := textproto.Dial("tcp", "irc.tamu.edu:6667")
 			if err != nil {
 				errOut(err, quit)
