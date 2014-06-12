@@ -78,7 +78,7 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 	defer fmt.Println("WTC") //debug
 
 	pingRegex := regexp.MustCompile("^PING (.*)")
-	cmdRegex := regexp.MustCompile(":(.*)?!~(.*)?@(.*)? PRIVMSG (.*) :yaircb: (.*)")
+	cmdRegex := regexp.MustCompile(`:(.*)?!~(.*)?@(.*)? PRIVMSG (.*) :yaircb:\s*(.*)`)
 	//read every line from the server chan and print to console
 	for {
 		select {
