@@ -50,33 +50,45 @@ func writeToServer(socket *textproto.Conn, srvChan chan string, wg *sync.WaitGro
 	}
 }
 
-//take input from connection and write out to console, also handle PING/PONG
-func writeToConsole(socket *textproto.Conn, srvChan chan string, wg *sync.WaitGroup, quit chan bool) {
+//take input from connection and send to console channel
+func readFromServer(socket *textproto.Conn, srvChan chan string, wg *sync.WaitGroup, quit chan bool) {
 	defer wg.Done()
-	defer fmt.Println("WTC") //debug
+	defer fmt.Println("RFS")
 
 	r := socket.Reader
-	pingRegex := regexp.MustCompile("^PING (.*)")
 	line, line_err := r.ReadLine()
-	//read every line from the server and print to console
 	for ; line_err == nil; line, line_err = r.ReadLine() {
 		select {
-		case <-quit: //exit if indicated
+		case <- quit:
 			return
 		default:
-			fmt.Println(line)
-			if match := pingRegex.FindStringSubmatch(line); match != nil {
-				//respond to PING from server
-				srvChan <- ("PONG " + match[1])
-				fmt.Println("PONG", match[1]) //put to console
-			}
+			srvChan <- line
 		}
 	}
-
-	//print error and exit
 	if line_err != nil {
 		errOut(line_err, quit)
 		socket.Close()
+	}
+}
+
+func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGroup, quit chan bool) {
+	defer wg.Done()
+	defer fmt.Println("WTC") //debug
+
+	pingRegex := regexp.MustCompile("^PING (.*)")
+	//read every line from the server chan and print to console
+	for {
+		select {
+		case <-quit: //exit if indicated
+			return
+		case line:=<-readChan:
+			fmt.Println(line)
+			if match := pingRegex.FindStringSubmatch(line); match != nil {
+				//respond to PING from server
+				writeChan <- ("PONG " + match[1])
+				fmt.Println("PONG", match[1]) //put to console
+			}
+		}
 	}
 }
 
@@ -106,14 +118,16 @@ func readFromConsole(srvChan chan string, wg *sync.WaitGroup, quit chan bool, er
 func main() {
 	//funcMap := initMap()
 	var conns uint16
-	srvChan := make(chan string) //used to send strings from readFromConsole to writeToServer
+	writeChan := make(chan string) //used to send strings from readFromConsole to writeToServer
+	readChan := make(chan string) //send strings from readFromServer to writeToConsole
 	//wgSrv for goroutines to/from sever, wg for readFromConsole
 	var wgSrv, wg sync.WaitGroup
 	quit := make(chan bool, 2)  //used to indicate server to/from goroutines need to exit
 	error := make(chan bool, 1) //used to indicate readFromConsole exited
 	//initiate connection
-	wg.Add(1)
-	go readFromConsole(srvChan, &wg, quit, error) //doesnt get restarted on connection EOF
+	wg.Add(2)
+	go readFromConsole(writeChan, &wg, quit, error) //doesnt get restarted on connection EOF
+	go writeToConsole(readChan, writeChan, &wg, quit) //doesnt get restarted on connection EOF
 connectionLoop:
 	for ; ; conns++ {
 		select {
@@ -138,7 +152,7 @@ connectionLoop:
 			}
 			wgSrv.Add(1)
 			//launch routine to write server output to console
-			go writeToConsole(socket, srvChan, &wgSrv, quit)
+			go readFromServer(socket, readChan, &wgSrv, quit)
 			err = socket.Writer.PrintfLine("USER yaircb * * yaircb")
 			if err != nil {
 				errOut(err, quit)
@@ -150,7 +164,7 @@ connectionLoop:
 			}
 			wgSrv.Add(1)
 			//launch routine to send to server and get input from console
-			go writeToServer(socket, srvChan, &wgSrv, quit)
+			go writeToServer(socket, writeChan, &wgSrv, quit)
 			wgSrv.Wait()
 		}
 	}
