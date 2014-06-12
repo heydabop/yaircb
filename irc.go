@@ -91,7 +91,9 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 				writeChan <- ("PONG " + match[1])
 				fmt.Println("PONG", match[1]) //put to console
 			} else if match := cmdRegex.FindStringSubmatch(line); match != nil {
-				funcMap[match[5]](writeChan, match[4], match[1], "")
+				if cmd, valid := funcMap[match[5]]; valid {
+					cmd(writeChan, match[4], match[1], "")
+				}
 			}
 		}
 	}
@@ -144,7 +146,7 @@ connectionLoop:
 			} else {
 				fmt.Println("RESTARTING...")
 			}
-			socket, err := textproto.Dial("tcp", "irc.tamu.edu:6667")
+			socket, err := textproto.Dial("tcp", "chat.freenode.net:6667")
 			if err != nil {
 				errOut(err, quit)
 				return
