@@ -11,6 +11,8 @@ import (
 	"sync"
 )
 
+var funcMap map[string]command
+
 //output err
 func errOut(err error, quit chan bool) {
 	fmt.Println("ERROR: ", err.Error())
@@ -76,6 +78,7 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 	defer fmt.Println("WTC") //debug
 
 	pingRegex := regexp.MustCompile("^PING (.*)")
+	cmdRegex := regexp.MustCompile(":(.*)?!~(.*)?@(.*)? PRIVMSG (.*) :yaircb: (.*)")
 	//read every line from the server chan and print to console
 	for {
 		select {
@@ -87,6 +90,8 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 				//respond to PING from server
 				writeChan <- ("PONG " + match[1])
 				fmt.Println("PONG", match[1]) //put to console
+			} else if match := cmdRegex.FindStringSubmatch(line); match != nil {
+				funcMap[match[5]](writeChan, match[4], match[1], "")
 			}
 		}
 	}
@@ -116,7 +121,7 @@ func readFromConsole(srvChan chan string, wg *sync.WaitGroup, quit chan bool, er
 }
 
 func main() {
-	//funcMap := initMap()
+	funcMap = initMap()
 	var conns uint16
 	writeChan := make(chan string) //used to send strings from readFromConsole to writeToServer
 	readChan := make(chan string) //send strings from readFromServer to writeToConsole
