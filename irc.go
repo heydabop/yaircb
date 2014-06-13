@@ -61,7 +61,7 @@ func readFromServer(socket *textproto.Conn, srvChan chan string, wg *sync.WaitGr
 	line, line_err := r.ReadLine()
 	for ; line_err == nil; line, line_err = r.ReadLine() {
 		select {
-		case <- quit:
+		case <-quit:
 			return
 		default:
 			srvChan <- line
@@ -84,7 +84,7 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 		select {
 		case <-quit: //exit if indicated
 			return
-		case line:=<-readChan:
+		case line := <-readChan:
 			fmt.Println(line)
 			if match := pingRegex.FindStringSubmatch(line); match != nil {
 				//respond to PING from server
@@ -126,14 +126,14 @@ func main() {
 	funcMap = initMap()
 	var conns uint16
 	writeChan := make(chan string) //used to send strings from readFromConsole to writeToServer
-	readChan := make(chan string) //send strings from readFromServer to writeToConsole
+	readChan := make(chan string)  //send strings from readFromServer to writeToConsole
 	//wgSrv for goroutines to/from sever, wg for readFromConsole
 	var wgSrv, wg sync.WaitGroup
 	quit := make(chan bool, 2)  //used to indicate server to/from goroutines need to exit
 	error := make(chan bool, 1) //used to indicate readFromConsole exited
 	//initiate connection
 	wg.Add(2)
-	go readFromConsole(writeChan, &wg, quit, error) //doesnt get restarted on connection EOF
+	go readFromConsole(writeChan, &wg, quit, error)   //doesnt get restarted on connection EOF
 	go writeToConsole(readChan, writeChan, &wg, quit) //doesnt get restarted on connection EOF
 connectionLoop:
 	for ; ; conns++ {
