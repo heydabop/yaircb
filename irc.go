@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/fzzy/radix/redis"
 	"net/textproto"
 	"os"
 	"regexp"
@@ -11,7 +12,10 @@ import (
 	"sync"
 )
 
-var funcMap map[string]command
+var (
+	funcMap map[string]command
+	db      redis.Client
+)
 
 //output err
 func errOut(err error, quit chan bool) {
@@ -79,6 +83,7 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 
 	pingRegex := regexp.MustCompile("^PING (.*)")
 	cmdRegex := regexp.MustCompile(`:(.*)?!~(.*)?@(.*)? PRIVMSG (.*) :yaircb:\s*(.*)`)
+
 	//read every line from the server chan and print to console
 	for {
 		select {
@@ -124,6 +129,17 @@ func readFromConsole(srvChan chan string, wg *sync.WaitGroup, quit chan bool, er
 
 func main() {
 	funcMap = initMap()
+	db, err := redis.Dial("tcp", "127.0.0.1:6379")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	reply, err := db.Cmd("get", "heydabop").Bytes()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(string(reply))
 	var conns uint16
 	writeChan := make(chan string) //used to send strings from readFromConsole to writeToServer
 	readChan := make(chan string)  //send strings from readFromServer to writeToConsole
