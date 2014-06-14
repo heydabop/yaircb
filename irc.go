@@ -146,7 +146,7 @@ func main() {
 	http.HandleFunc("/register/", registerHandler)
 	http.HandleFunc("/save/", saveHandler)
 	http.HandleFunc("/newUser/", newUserHandler)
-	go http.ListenAndServe(":8080", nil)
+	go http.ListenAndServeTLS(":8080", "ssl.crt", "ssl.pem", nil)
 
 	var conns uint16
 	writeChan := make(chan string) //used to send strings from readFromConsole to writeToServer

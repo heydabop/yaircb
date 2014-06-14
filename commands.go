@@ -28,7 +28,7 @@ func botsnack(srvChan chan string, channel, nick, args string) {
 }
 
 func register(srvChan chan string, channel, nick, args string) {
-	message := "PRIVMSG " + channel + " :http://anex.us:8080/register/"
+	message := "PRIVMSG " + channel + " :https://anex.us/register/"
 	fmt.Println(message)
 	srvChan <- message
 }

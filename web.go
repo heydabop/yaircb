@@ -36,7 +36,7 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	webDb.Cmd("set", uname, pwd)
 	expire := time.Now().AddDate(0, 0, 1)
 	userCookie := http.Cookie{uname, "1234", "/", "anex.us", expire,
-		expire.Format(time.UnixDate), 86400, false, false, uname + "=1234", []string{uname + "=1234"}}
+		expire.Format(time.UnixDate), 86400, true, false, uname + "=1234", []string{uname + "=1234"}}
 	//userCookie := http.Cookie{Name: uname, Value: "1234", Expires: expire, MaxAge: 86400}
 	webDb.Cmd("set", uname+"Cookie", "1234")
 	webDb.Cmd("expire", uname+"Cookie", 86400)
