@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha512"
 	"fmt"
 	"github.com/fzzy/radix/redis"
 	"html/template"
@@ -29,7 +30,8 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 
 func saveHandler(w http.ResponseWriter, r *http.Request) {
 	uname := r.FormValue("username")
-	pwd := r.FormValue("pwd")
+	pwdBytes := sha512.Sum512([]byte(r.FormValue("pwd")))
+	pwd := string(pwdBytes[:])
 	fmt.Println("Form Values:", r.PostForm)
 	webDb.Cmd("set", uname, pwd)
 	expire := time.Now().AddDate(0, 0, 1)
