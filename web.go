@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"crypto/sha512"
+	"encoding/hex"
 	"fmt"
 	"github.com/fzzy/radix/redis"
 	"html/template"
@@ -35,10 +37,14 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Form Values:", r.PostForm)
 	webDb.Cmd("set", uname, pwd)
 	expire := time.Now().AddDate(0, 0, 1)
-	userCookie := http.Cookie{uname, "1234", "/", "anex.us", expire,
-		expire.Format(time.UnixDate), 86400, true, false, uname + "=1234", []string{uname + "=1234"}}
+	cookieBytes := make([]byte, 64)
+	rand.Read(cookieBytes)
+	cookieString := hex.EncodeToString(cookieBytes)
+	fmt.Printf("random string: %x\n", cookieString)
+	userCookie := http.Cookie{uname, cookieString, "/", "anex.us", expire, expire.Format(time.UnixDate),
+		86400, true, false, uname + "=" + cookieString, []string{uname + "=" + cookieString}}
 	//userCookie := http.Cookie{Name: uname, Value: "1234", Expires: expire, MaxAge: 86400}
-	webDb.Cmd("set", uname+"Cookie", "1234")
+	webDb.Cmd("set", uname+"Cookie", cookieString)
 	webDb.Cmd("expire", uname+"Cookie", 86400)
 	http.SetCookie(w, &userCookie)
 	http.Redirect(w, r, "/newUser/"+uname, http.StatusFound)
