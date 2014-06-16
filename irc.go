@@ -140,10 +140,12 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	fmt.Printf("%x\n", string(reply))
+	fmt.Println(string(reply))
 
 	initWebRedis()
 	http.HandleFunc("/register/", registerHandler)
+	http.HandleFunc("/login/", loginHandler)
+	http.HandleFunc("/loginCheck/", loginCheckHandler)
 	http.HandleFunc("/", registerHandler)
 	http.HandleFunc("/save/", saveHandler)
 	http.HandleFunc("/newUser/", newUserHandler)
