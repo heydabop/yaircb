@@ -71,5 +71,9 @@ func newUserHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	t.Execute(w, u)
+	if u.Cookie {
+		t.Execute(w, u)
+	} else {
+		http.Redirect(w, r, "/register/", http.StatusFound)
+	}
 }
