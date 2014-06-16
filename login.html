@@ -5,16 +5,21 @@
   </head>
   <body>
     <div id="shrink">
-    <div id="top">
-      <div id="header">
-        <h1>Login</h1>
-      </div>
-      <div id="formDiv">
-        <form action="/loginCheck/" method="POST" id="form">
-          <p id="textFields">Username <input type="text" name="username" id="userInput" class="input"></input>
-            <br>Password <input type="password" name="pwd" id="passInput" class="input"></input></p>
-          <p id="button"><input type="submit" value="Login" id="subButton"></input></p>
-        </form>
-      </div>
+      <div id="top">
+        <div id="header">
+          <h1>Login</h1>
+        </div>
+        <div id="formDiv">
+          <form action="/loginCheck/" method="POST" id="form">
+            <p id="textFields">Username <input type="text" name="username" id="userInput" class="input"></input>
+              <br>Password <input type="password" name="pwd" id="passInput" class="input"></input>
+              <div id="checkDiv">
+                <label for="checkInput" id="checkLabel">Remember Me</label>
+                <input type="checkbox" name="remember" id="checkInput" class ="input"></input>
+              </div>
+            </p>
+            <p id="button"><input type="submit" value="Login" id="subButton"></input></p>
+          </form>
+        </div>
   </body>
 </html>

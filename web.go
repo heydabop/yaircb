@@ -39,18 +39,27 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 func loginCheckHandler(w http.ResponseWriter, r *http.Request) {
 	uname := r.FormValue("username")
+	remember := false
+	if r.FormValue("remember") == "on" {
+		remember = true
+	}
 	pwdBytes := sha512.Sum512([]byte(r.FormValue("pwd")))
 	pwd := hex.EncodeToString(pwdBytes[:])
+	fmt.Println("Form Values:", r.PostForm)
 	uReply := webDb.Cmd("get", uname)
 	if uFound, _ := uReply.Bool(); uFound {
 		fmt.Println("user found")
 		if pwdDb, _ := uReply.Bytes(); pwd == string(pwdDb) {
+			if remember {
+				c := makeCookie(uname)
+				http.SetCookie(w, &c)
+			}
 			fmt.Println("password match")
 			t, err := template.ParseFiles("user.html")
 			if err != nil {
 				fmt.Println(err)
 			}
-			u := User{uname, pwd, false}
+			u := User{uname, pwd, remember}
 			t.Execute(w, u)
 		} else {
 			http.Redirect(w, r, "/login/", http.StatusFound)
@@ -66,16 +75,7 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	pwd := hex.EncodeToString(pwdBytes[:])
 	fmt.Println("Form Values:", r.PostForm)
 	webDb.Cmd("set", uname, pwd)
-	expire := time.Now().AddDate(0, 0, 1)
-	cookieBytes := make([]byte, 64)
-	rand.Read(cookieBytes)
-	cookieString := hex.EncodeToString(cookieBytes)
-	fmt.Println("random string:", cookieString)
-	userCookie := http.Cookie{uname, cookieString, "/", "anex.us", expire, expire.Format(time.UnixDate),
-		86400, true, false, uname + "=" + cookieString, []string{uname + "=" + cookieString}}
-	//userCookie := http.Cookie{Name: uname, Value: "1234", Expires: expire, MaxAge: 86400}
-	webDb.Cmd("set", uname+"Cookie", cookieString)
-	webDb.Cmd("expire", uname+"Cookie", 86400)
+	userCookie := makeCookie(uname)
 	http.SetCookie(w, &userCookie)
 	http.Redirect(w, r, "/user/"+uname, http.StatusFound)
 }
@@ -112,4 +112,17 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Redirect(w, r, "/register/", http.StatusFound)
 	}
+}
+
+func makeCookie(uname string) http.Cookie {
+	expire := time.Now().AddDate(0, 0, 1)
+	cookieBytes := make([]byte, 64)
+	rand.Read(cookieBytes)
+	cookieString := hex.EncodeToString(cookieBytes)
+	fmt.Println("random string:", cookieString)
+	userCookie := http.Cookie{uname, cookieString, "/", "anex.us", expire, expire.Format(time.UnixDate),
+		86400, true, false, uname + "=" + cookieString, []string{uname + "=" + cookieString}}
+	webDb.Cmd("set", uname+"Cookie", cookieString) //this overwrites an existing cookie
+	webDb.Cmd("expire", uname+"Cookie", 86400)
+	return userCookie
 }
