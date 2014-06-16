@@ -140,10 +140,11 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println(string(reply))
+	fmt.Printf("%x\n", string(reply))
 
 	initWebRedis()
 	http.HandleFunc("/register/", registerHandler)
+	http.HandleFunc("/", registerHandler)
 	http.HandleFunc("/save/", saveHandler)
 	http.HandleFunc("/newUser/", newUserHandler)
 	go http.ListenAndServeTLS(":8080", "ssl.crt", "ssl.pem", nil)

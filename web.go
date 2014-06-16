@@ -56,7 +56,7 @@ func newUserHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 	}
 	fmt.Println("Username:", u.Uname)
-	fmt.Println("Password:", u.Pwd)
+	fmt.Printf("Password: %x\n", u.Pwd)
 	cRep := webDb.Cmd("get", u.Uname+"Cookie")
 	cFound, _ := cRep.Bool()
 	if cFound {
