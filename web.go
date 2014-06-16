@@ -23,17 +23,15 @@ func initWebRedis() {
 	webDb, _ = redis.Dial("tcp", "127.0.0.1:6379")
 }
 
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "index.html")
+}
+
 func registerHandler(w http.ResponseWriter, r *http.Request) {
-	/*p := User{}
-	t, _ := template.ParseFiles("register.html")
-	t.Execute(w, p)*/
 	http.ServeFile(w, r, "register.html")
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
-	/*p := User{}
-	t, _ := template.ParseFiles("register.html")
-	t.Execute(w, p)*/
 	http.ServeFile(w, r, "login.html")
 }
 

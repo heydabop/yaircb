@@ -173,7 +173,7 @@ func main() {
 	http.HandleFunc("/register/", registerHandler)
 	http.HandleFunc("/login/", loginHandler)
 	http.HandleFunc("/loginCheck/", loginCheckHandler)
-	http.HandleFunc("/", registerHandler)
+	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/save/", saveHandler)
 	http.HandleFunc("/user/", userHandler)
 	go http.ListenAndServeTLS(":8080", "ssl.crt", "ssl.pem", nil)

@@ -15,6 +15,8 @@ func initMap() map[string]command {
 		"botsnack": command(botsnack),
 		"register": command(register),
 		"uptime": command(uptime),
+		"web": command(web),
+		"login": command(login),
 	}
 }
 
@@ -43,6 +45,18 @@ func uptime(srvChan chan string, channel, nick, args string) {
 		fmt.Println(err)
 		return
 	}
+	fmt.Println(message)
+	srvChan <- message
+}
+
+func web(srvChan chan string, channel, nick, args string) {
+	message := "PRIVMSG " + channel + " :https://anex.us/"
+	fmt.Println(message)
+	srvChan <- message
+}
+
+func login(srvChan chan string, channel, nick, args string) {
+	message := "PRIVMSG " + channel + " :https://anex.us/login/"
 	fmt.Println(message)
 	srvChan <- message
 }
