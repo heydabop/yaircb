@@ -46,7 +46,7 @@ func loginCheckHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("user found")
 		if pwdDb, _ := uReply.Bytes(); pwd == string(pwdDb) {
 			fmt.Println("password match")
-			t, err := template.ParseFiles("newUser.html")
+			t, err := template.ParseFiles("user.html")
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -77,17 +77,17 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	webDb.Cmd("set", uname+"Cookie", cookieString)
 	webDb.Cmd("expire", uname+"Cookie", 86400)
 	http.SetCookie(w, &userCookie)
-	http.Redirect(w, r, "/newUser/"+uname, http.StatusFound)
+	http.Redirect(w, r, "/user/"+uname, http.StatusFound)
 }
 
-func newUserHandler(w http.ResponseWriter, r *http.Request) {
+func userHandler(w http.ResponseWriter, r *http.Request) {
 	u := User{}
-	u.Uname = r.URL.Path[len("/newUser/"):]
+	u.Uname = r.URL.Path[len("/user/"):]
 	reply := webDb.Cmd("get", u.Uname)
 	pwd, _ := reply.Bytes()
 	u.Pwd = string(pwd)
 	u.Cookie = false
-	t, err := template.ParseFiles("newUser.html")
+	t, err := template.ParseFiles("user.html")
 	if err != nil {
 		fmt.Println(err)
 	}
