@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/fzzy/radix/redis"
+	"io/ioutil"
+	"encoding/json"
 	"net/http"
 	"net/textproto"
 	"os"
@@ -18,6 +20,11 @@ var (
 	db      redis.Client
 	regexpCmds []*regexp.Regexp
 )
+
+type JSONconfig struct {
+	Nick string
+	Pass string
+}
 
 //output err
 func errOut(err error, quit chan bool) {
@@ -135,10 +142,20 @@ func readFromConsole(srvChan chan string, wg *sync.WaitGroup, quit chan bool, er
 }
 
 func main() {
+	var config JSONconfig
+	configFile, err := ioutil.ReadFile("config.json")
+	if err == nil {
+		json.Unmarshal(configFile, &config)
+	} else {
+		config = JSONconfig{"yaircb", ""}
+	}
+
 	regexpCmds = make([]*regexp.Regexp, 2)
-	regexpCmds[0] = regexp.MustCompile(`:(.*)?!~(.*)?@(.*)? PRIVMSG (.*) :yaircb:\s*(.*)`)
+	regexpCmds[0] = regexp.MustCompile(`:(.*)?!~(.*)?@(.*)? PRIVMSG (.*) :` + config.Nick + `:\s*(.*)`)
 	regexpCmds[1] = regexp.MustCompile(`:(.*)?!~(.*)?@(.*)? PRIVMSG (.*) :\s*\+(.*)`)
+
 	funcMap = initMap()
+
 	db, err := redis.Dial("tcp", "127.0.0.1:6379")
 	if err != nil {
 		fmt.Println(err)
@@ -189,14 +206,14 @@ connectionLoop:
 			}
 			//make writer/reader to/from server
 			//send initial IRC messages, NICK and USER
-			err = socket.Writer.PrintfLine("NICK yaircb")
+			err = socket.Writer.PrintfLine("NICK " + config.Nick)
 			if err != nil {
 				errOut(err, quit)
 			}
 			wgSrv.Add(1)
 			//launch routine to write server output to console
 			go readFromServer(socket, readChan, &wgSrv, quit)
-			err = socket.Writer.PrintfLine("USER yaircb * * yaircb")
+			err = socket.Writer.PrintfLine("USER " + config.Nick + " * * " + config.Nick)
 			if err != nil {
 				errOut(err, quit)
 			}
@@ -205,6 +222,7 @@ connectionLoop:
 			if err != nil {
 				errOut(err, quit)
 			}
+			err = socket.Writer.PrintfLine("PRIVMSG NickServ :IDENTIFY " + config.Pass)
 			wgSrv.Add(1)
 			//launch routine to send to server and get input from console
 			go writeToServer(socket, writeChan, &wgSrv, quit)
