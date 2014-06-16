@@ -16,6 +16,7 @@ import (
 var (
 	funcMap map[string]command
 	db      redis.Client
+	regexpCmds []*regexp.Regexp
 )
 
 //output err
@@ -83,7 +84,6 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 	defer fmt.Println("WTC") //debug
 
 	pingRegex := regexp.MustCompile("^PING (.*)")
-	cmdRegex := regexp.MustCompile(`:(.*)?!~(.*)?@(.*)? PRIVMSG (.*) :yaircb:\s*(.*)`)
 
 	//read every line from the server chan and print to console
 	for {
@@ -96,9 +96,15 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 				//respond to PING from server
 				writeChan <- ("PONG " + match[1])
 				fmt.Println("PONG", match[1]) //put to console
-			} else if match := cmdRegex.FindStringSubmatch(line); match != nil {
-				if cmd, valid := funcMap[match[5]]; valid {
-					cmd(writeChan, match[4], match[1], "")
+			} else {
+				var match []string
+				for _, regexp := range regexpCmds {
+					if match = regexp.FindStringSubmatch(line); match != nil {
+						if cmd, valid := funcMap[match[5]]; valid {
+							cmd(writeChan, match[4], match[1], "")
+						}
+						break
+					}
 				}
 			}
 		}
@@ -129,6 +135,9 @@ func readFromConsole(srvChan chan string, wg *sync.WaitGroup, quit chan bool, er
 }
 
 func main() {
+	regexpCmds = make([]*regexp.Regexp, 2)
+	regexpCmds[0] = regexp.MustCompile(`:(.*)?!~(.*)?@(.*)? PRIVMSG (.*) :yaircb:\s*(.*)`)
+	regexpCmds[1] = regexp.MustCompile(`:(.*)?!~(.*)?@(.*)? PRIVMSG (.*) :\s*\+(.*)`)
 	funcMap = initMap()
 	db, err := redis.Dial("tcp", "127.0.0.1:6379")
 	if err != nil {
