@@ -228,10 +228,10 @@ connectionLoop:
 				errOut(err, quit)
 			}
 			//join first channel
-			err = socket.Writer.PrintfLine("JOIN #ttestt")
+			/*err = socket.Writer.PrintfLine("JOIN #ttestt")
 			if err != nil {
 				errOut(err, quit)
-			}
+			}*/
 			err = socket.Writer.PrintfLine("PRIVMSG NickServ :IDENTIFY " + config.Pass)
 			wgSrv.Add(1)
 			//launch routine to send to server and get input from console

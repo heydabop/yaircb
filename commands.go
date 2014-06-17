@@ -25,6 +25,7 @@ func initMap() map[string]command {
 		"verified": command(verified),
 		"help":     command(help),
 		"commands": command(commands),
+		"kick":     command(kick),
 	}
 }
 
@@ -122,6 +123,27 @@ func commands(srvChan chan string, channel, nick, hostname string, args []string
 	message := "PRIVMSG " + channel + " :"
 	for command := range funcMap {
 		message += command + " "
+	}
+	fmt.Println(message)
+	srvChan <- message
+}
+
+func kick(srvChan chan string, channel, nick, hostname string, args []string) {
+	message := "KICK " + channel + " " + nick + " :You don't tell me what to do."
+	fmt.Println(message)
+	srvChan <- message
+
+	message = "KICK " + channel
+	if len(args) < 1 {
+		message = "PRIVMSG " + channel + " :ERROR: Invalid number of arguments"
+	} else {
+		if args[0] == config.Nick {
+			return
+		}
+		message += " " + args[0]
+	}
+	if len(args) >= 2 {
+		message += " :" + strings.Join(args[1:], " ")
 	}
 	fmt.Println(message)
 	srvChan <- message
