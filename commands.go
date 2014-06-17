@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/fzzy/radix/redis"
+	"math/rand"
 	"os/exec"
 	"strings"
 )
@@ -82,6 +83,7 @@ func verify(srvChan chan string, channel, nick, hostname string, args []string) 
 		if string(pinDb) == pin {
 			message = "PRIVMSG " + channel + " :You are now verified as " + uname
 			cmdDb.Cmd("set", uname+"Host", hostname)
+			cmdDb.Cmd("set", uname+"Pin", fmt.Sprintf("%06d", rand.Intn(1000000)))
 		} else {
 			message = "PRIVMSG " + channel + " :PIN does not match that of " + uname
 		}
