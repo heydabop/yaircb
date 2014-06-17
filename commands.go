@@ -17,10 +17,10 @@ func initMap() map[string]command {
 		"source":   command(source),
 		"botsnack": command(botsnack),
 		"register": command(register),
-		"uptime": command(uptime),
-		"web": command(web),
-		"login": command(login),
-		"verify": command(verify),
+		"uptime":   command(uptime),
+		"web":      command(web),
+		"login":    command(login),
+		"verify":   command(verify),
 		"verified": command(verified),
 	}
 }
@@ -77,11 +77,11 @@ func verify(srvChan chan string, channel, nick, hostname string, args []string) 
 	} else {
 		uname := args[0]
 		pin := args[1]
-		reply := cmdDb.Cmd("get", uname + "Pin")
+		reply := cmdDb.Cmd("get", uname+"Pin")
 		pinDb, _ := (reply.Bytes())
 		if string(pinDb) == pin {
 			message = "PRIVMSG " + channel + " :You are now verified as " + uname
-			cmdDb.Cmd("set", uname + "Host", hostname)
+			cmdDb.Cmd("set", uname+"Host", hostname)
 		} else {
 			message = "PRIVMSG " + channel + " :PIN does not match that of " + uname
 		}
@@ -96,7 +96,7 @@ func verified(srvChan chan string, channel, nick, hostname string, args []string
 		message = "PRIVMSG " + channel + " :ERROR: Invalid number of arguments"
 	} else {
 		uname := args[0]
-		reply := cmdDb.Cmd("get", uname + "Host")
+		reply := cmdDb.Cmd("get", uname+"Host")
 		hostnameDb, _ := reply.Bytes()
 		if hostname == string(hostnameDb) {
 			message = "PRIVMSG " + channel + " :You are " + uname + " at " + hostname

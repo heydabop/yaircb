@@ -59,7 +59,7 @@ func loginCheckHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				fmt.Println(err)
 			}
-			pinReply := webDb.Cmd("get", uname + "Pin")
+			pinReply := webDb.Cmd("get", uname+"Pin")
 			pin, _ := pinReply.Bytes()
 			u := User{uname, pwd, remember, string(pin)}
 			t.Execute(w, u)
@@ -78,7 +78,7 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Form Values:", r.PostForm)
 	pinStr := fmt.Sprintf("%06d", rand.Intn(1000000))
 	webDb.Cmd("set", uname, pwd)
-	webDb.Cmd("set", uname + "Pin", pinStr)
+	webDb.Cmd("set", uname+"Pin", pinStr)
 	fmt.Println(pinStr)
 	userCookie := makeCookie(uname)
 	http.SetCookie(w, &userCookie)
@@ -91,7 +91,7 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	reply := webDb.Cmd("get", u.Uname)
 	pwd, _ := reply.Bytes()
 	u.Pwd = string(pwd)
-	reply = webDb.Cmd("get", u.Uname + "Pin")
+	reply = webDb.Cmd("get", u.Uname+"Pin")
 	pin, _ := reply.Bytes()
 	u.Pin = string(pin)
 	u.Cookie = false

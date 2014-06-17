@@ -2,10 +2,10 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"github.com/fzzy/radix/redis"
 	"io/ioutil"
-	"encoding/json"
 	"math/rand"
 	"net/http"
 	"net/textproto"
@@ -18,10 +18,10 @@ import (
 )
 
 var (
-	funcMap map[string]command
-	db      redis.Client
+	funcMap    map[string]command
+	db         redis.Client
 	regexpCmds []*regexp.Regexp
-	config JSONconfig
+	config     JSONconfig
 )
 
 type JSONconfig struct {
