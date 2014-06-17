@@ -1,12 +1,13 @@
 package main
 
 import (
-	"crypto/rand"
+	crand "crypto/rand"
 	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
 	"github.com/fzzy/radix/redis"
 	"html/template"
+	"math/rand"
 	"net/http"
 	"time"
 )
@@ -72,7 +73,10 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	pwdBytes := sha512.Sum512([]byte(r.FormValue("pwd")))
 	pwd := hex.EncodeToString(pwdBytes[:])
 	fmt.Println("Form Values:", r.PostForm)
+	pinStr := fmt.Sprintf("%04d", rand.Intn(10000))
 	webDb.Cmd("set", uname, pwd)
+	webDb.Cmd("set", uname + "Pin", pinStr)
+	fmt.Println(pinStr)
 	userCookie := makeCookie(uname)
 	http.SetCookie(w, &userCookie)
 	http.Redirect(w, r, "/user/"+uname, http.StatusFound)
@@ -115,9 +119,9 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 func makeCookie(uname string) http.Cookie {
 	expire := time.Now().AddDate(0, 0, 1)
 	cookieBytes := make([]byte, 64)
-	rand.Read(cookieBytes)
+	crand.Read(cookieBytes)
 	cookieString := hex.EncodeToString(cookieBytes)
-	fmt.Println("random string:", cookieString)
+	fmt.Println("crandom string:", cookieString)
 	userCookie := http.Cookie{uname, cookieString, "/", "anex.us", expire, expire.Format(time.UnixDate),
 		86400, true, false, uname + "=" + cookieString, []string{uname + "=" + cookieString}}
 	webDb.Cmd("set", uname+"Cookie", cookieString) //this overwrites an existing cookie
