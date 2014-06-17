@@ -19,6 +19,7 @@ var (
 	funcMap map[string]command
 	db      redis.Client
 	regexpCmds []*regexp.Regexp
+	config JSONconfig
 )
 
 type JSONconfig struct {
@@ -108,6 +109,9 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 				for _, regexp := range regexpCmds {
 					if match = regexp.FindStringSubmatch(line); match != nil {
 						if cmd, valid := funcMap[match[5]]; valid {
+							if match[4] == config.Nick {
+								match[4] = match[1]
+							}
 							cmd(writeChan, match[4], match[1], "")
 						}
 						break
@@ -142,7 +146,6 @@ func readFromConsole(srvChan chan string, wg *sync.WaitGroup, quit chan bool, er
 }
 
 func main() {
-	var config JSONconfig
 	configFile, err := ioutil.ReadFile("config.json")
 	if err == nil {
 		json.Unmarshal(configFile, &config)
@@ -150,9 +153,10 @@ func main() {
 		config = JSONconfig{"yaircb", ""}
 	}
 
-	regexpCmds = make([]*regexp.Regexp, 2)
+	regexpCmds = make([]*regexp.Regexp, 3)
 	regexpCmds[0] = regexp.MustCompile(`:(.*)?!~(.*)?@(.*)? PRIVMSG (.*) :` + config.Nick + `:\s*(.*)`)
 	regexpCmds[1] = regexp.MustCompile(`:(.*)?!~(.*)?@(.*)? PRIVMSG (.*) :\s*\+(.*)`)
+	regexpCmds[2] = regexp.MustCompile(`:(.*)?!~(.*)?@(.*)? PRIVMSG (` + config.Nick + `) :\s*(.*)`)
 
 	funcMap = initMap()
 
