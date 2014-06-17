@@ -23,6 +23,8 @@ func initMap() map[string]command {
 		"login":    command(login),
 		"verify":   command(verify),
 		"verified": command(verified),
+		"help":     command(help),
+		"commands": command(commands),
 	}
 }
 
@@ -105,6 +107,21 @@ func verified(srvChan chan string, channel, nick, hostname string, args []string
 		} else {
 			message = "PRIVMSG " + channel + " :You are not " + uname
 		}
+	}
+	fmt.Println(message)
+	srvChan <- message
+}
+
+func help(srvChan chan string, channel, nick, hostname string, args []string) {
+	message := "PRIVMSG " + channel + " :8)"
+	fmt.Println(message)
+	srvChan <- message
+}
+
+func commands(srvChan chan string, channel, nick, hostname string, args []string) {
+	message := "PRIVMSG " + channel + " :"
+	for command := range funcMap {
+		message += command + " "
 	}
 	fmt.Println(message)
 	srvChan <- message
