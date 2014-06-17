@@ -18,6 +18,7 @@ type User struct {
 	Uname  string
 	Pwd    string
 	Cookie bool
+	Pin    string
 }
 
 func initWebRedis() {
@@ -58,7 +59,9 @@ func loginCheckHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				fmt.Println(err)
 			}
-			u := User{uname, pwd, remember}
+			pinReply := webDb.Cmd("get", uname + "Pin")
+			pin, _ := pinReply.Bytes()
+			u := User{uname, pwd, remember, string(pin)}
 			t.Execute(w, u)
 		} else {
 			http.Redirect(w, r, "/login/", http.StatusFound)
@@ -73,7 +76,7 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	pwdBytes := sha512.Sum512([]byte(r.FormValue("pwd")))
 	pwd := hex.EncodeToString(pwdBytes[:])
 	fmt.Println("Form Values:", r.PostForm)
-	pinStr := fmt.Sprintf("%04d", rand.Intn(10000))
+	pinStr := fmt.Sprintf("%06d", rand.Intn(1000000))
 	webDb.Cmd("set", uname, pwd)
 	webDb.Cmd("set", uname + "Pin", pinStr)
 	fmt.Println(pinStr)
@@ -88,6 +91,9 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	reply := webDb.Cmd("get", u.Uname)
 	pwd, _ := reply.Bytes()
 	u.Pwd = string(pwd)
+	reply = webDb.Cmd("get", u.Uname + "Pin")
+	pin, _ := reply.Bytes()
+	u.Pin = string(pin)
 	u.Cookie = false
 	t, err := template.ParseFiles("user.html")
 	if err != nil {
@@ -95,6 +101,7 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("Username:", u.Uname)
 	fmt.Println("Password:", u.Pwd)
+	fmt.Println("Pin:", u.Pin)
 	cRep := webDb.Cmd("get", u.Uname+"Cookie")
 	cFound, _ := cRep.Bool()
 	if cFound {

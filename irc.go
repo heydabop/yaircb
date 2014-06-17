@@ -6,6 +6,7 @@ import (
 	"github.com/fzzy/radix/redis"
 	"io/ioutil"
 	"encoding/json"
+	"math/rand"
 	"net/http"
 	"net/textproto"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -146,6 +148,7 @@ func readFromConsole(srvChan chan string, wg *sync.WaitGroup, quit chan bool, er
 }
 
 func main() {
+	rand.Seed(time.Now().Unix())
 	configFile, err := ioutil.ReadFile("config.json")
 	if err == nil {
 		json.Unmarshal(configFile, &config)
