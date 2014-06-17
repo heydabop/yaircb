@@ -110,11 +110,12 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 				var match []string
 				for _, regexp := range regexpCmds {
 					if match = regexp.FindStringSubmatch(line); match != nil {
-						if cmd, valid := funcMap[match[5]]; valid {
+						cmdArgs := strings.Fields(match[5])
+						if cmd, valid := funcMap[cmdArgs[0]]; valid {
 							if match[4] == config.Nick {
 								match[4] = match[1]
 							}
-							cmd(writeChan, match[4], match[1], "")
+							cmd(writeChan, match[4], match[1], cmdArgs[1:])
 						}
 						break
 					}
@@ -162,6 +163,7 @@ func main() {
 	regexpCmds[2] = regexp.MustCompile(`:(.*)?!~(.*)?@(.*)? PRIVMSG (` + config.Nick + `) :\s*(.*)`)
 
 	funcMap = initMap()
+	initCmdRedis()
 
 	db, err := redis.Dial("tcp", "127.0.0.1:6379")
 	if err != nil {
