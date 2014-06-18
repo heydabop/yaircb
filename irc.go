@@ -158,9 +158,9 @@ func main() {
 	}
 
 	regexpCmds = make([]*regexp.Regexp, 3)
-	regexpCmds[0] = regexp.MustCompile(`:(.*)?!~(.*)?@(.*)? PRIVMSG (.*) :` + config.Nick + `:\s*(.*)`)
-	regexpCmds[1] = regexp.MustCompile(`:(.*)?!~(.*)?@(.*)? PRIVMSG (.*) :\s*\+(.*)`)
-	regexpCmds[2] = regexp.MustCompile(`:(.*)?!~(.*)?@(.*)? PRIVMSG (` + config.Nick + `) :\s*(.*)`)
+	regexpCmds[0] = regexp.MustCompile(`^:(\S*?)!(\S*?)@(\S*?) PRIVMSG (\S*) :` + config.Nick + `:\s*(.*)`)
+	regexpCmds[1] = regexp.MustCompile(`^:(\S*)?!(\S*)?@(\S*)? PRIVMSG (\S*) :\s*\+(.*)`)
+	regexpCmds[2] = regexp.MustCompile(`^:(\S*)?!(\S*)?@(\S*)? PRIVMSG (` + config.Nick + `) :\s*(.*)`)
 
 	funcMap = initMap()
 	initCmdRedis()
