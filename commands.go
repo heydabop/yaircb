@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/fzzy/radix/redis"
 	"math/rand"
+	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -26,6 +28,7 @@ func initMap() map[string]command {
 		"help":     command(help),
 		"commands": command(commands),
 		"kick":     command(kick),
+		"wc":       command(wc),
 	}
 }
 
@@ -144,6 +147,37 @@ func kick(srvChan chan string, channel, nick, hostname string, args []string) {
 	}
 	if len(args) >= 2 {
 		message += " :" + strings.Join(args[1:], " ")
+	}
+	fmt.Println(message)
+	srvChan <- message
+}
+
+func wc(srvChan chan string, channel, nick, hostnam string, args []string) {
+	message := "PRIVMSG " + channel + " :"
+	if len(args) != 1 {
+		message += "ERROR: Invalid number of arguments"
+	} else {
+		logFile, err := os.Open(`/home/ross/irclogs/freenode/` + channel + `.log`)
+		if err != nil {
+			message += fmt.Sprintf("%s", err)
+		} else {
+			fileStat, err := logFile.Stat()
+			log := make([]byte, fileStat.Size())
+			_, err = logFile.Read(log)
+			if err != nil {
+				message += fmt.Sprintf("%s", err)
+			} else {
+				logLines := strings.Split(string(log),"\n")
+				nickLine := regexp.MustCompile(`^\d\d:\d\d <[@\+\s]?` + args[0] + `>`)
+				matches := 0
+				for _, line := range logLines {
+					if match := nickLine.FindStringSubmatch(line); match != nil {
+						matches++
+					}
+				}
+				message += args[0] + ": " + fmt.Sprintf("%d", matches) + " lines"
+			}
+		}
 	}
 	fmt.Println(message)
 	srvChan <- message
