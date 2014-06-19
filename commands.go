@@ -85,13 +85,17 @@ func verify(srvChan chan string, channel, nick, hostname string, args []string) 
 		uname := args[0]
 		pin := args[1]
 		reply := cmdDb.Cmd("get", uname+"Pin")
-		pinDb, _ := (reply.Bytes())
-		if string(pinDb) == pin {
-			message = "PRIVMSG " + channel + " :You are now verified as " + uname
-			cmdDb.Cmd("set", uname+"Host", hostname)
-			cmdDb.Cmd("set", uname+"Pin", fmt.Sprintf("%06d", rand.Intn(1000000)))
+		pinDb, err := (reply.Bytes())
+		if err != nil {
+			message = "PRIVMSG " + channel + " :" + fmt.Sprintf("%s", err)
 		} else {
-			message = "PRIVMSG " + channel + " :PIN does not match that of " + uname
+			if string(pinDb) == pin {
+				message = "PRIVMSG " + channel + " :You are now verified as " + uname
+				cmdDb.Cmd("set", uname+"Host", hostname)
+				cmdDb.Cmd("set", uname+"Pin", fmt.Sprintf("%06d", rand.Intn(1000000)))
+			} else {
+				message = "PRIVMSG " + channel + " :PIN does not match that of " + uname
+			}
 		}
 	}
 	fmt.Println(message)
@@ -105,11 +109,15 @@ func verified(srvChan chan string, channel, nick, hostname string, args []string
 	} else {
 		uname := args[0]
 		reply := cmdDb.Cmd("get", uname+"Host")
-		hostnameDb, _ := reply.Bytes()
-		if hostname == string(hostnameDb) {
-			message = "PRIVMSG " + channel + " :You are " + uname + " at " + hostname
+		hostnameDb, err := reply.Bytes()
+		if err != nil {
+			message = "PRIVMSG " + channel + " :" + fmt.Sprintf("%s", err)
 		} else {
-			message = "PRIVMSG " + channel + " :You are not " + uname
+			if hostname == string(hostnameDb) {
+				message = "PRIVMSG " + channel + " :You are " + uname + " at " + hostname
+			} else {
+				message = "PRIVMSG " + channel + " :You are not " + uname
+			}
 		}
 	}
 	fmt.Println(message)
@@ -162,20 +170,24 @@ func wc(srvChan chan string, channel, nick, hostnam string, args []string) {
 			message += fmt.Sprintf("%s", err)
 		} else {
 			fileStat, err := logFile.Stat()
-			log := make([]byte, fileStat.Size())
-			_, err = logFile.Read(log)
 			if err != nil {
 				message += fmt.Sprintf("%s", err)
 			} else {
-				logLines := strings.Split(string(log),"\n")
-				nickLine := regexp.MustCompile(`^\d\d:\d\d <[@\+\s]?` + args[0] + `>`)
-				matches := 0
-				for _, line := range logLines {
-					if match := nickLine.FindStringSubmatch(line); match != nil {
-						matches++
+				log := make([]byte, fileStat.Size())
+				_, err = logFile.Read(log)
+				if err != nil {
+					message += fmt.Sprintf("%s", err)
+				} else {
+					logLines := strings.Split(string(log),"\n")
+					nickLine := regexp.MustCompile(`^\d\d:\d\d <[@\+\s]?` + args[0] + `>`)
+					matches := 0
+					for _, line := range logLines {
+						if match := nickLine.FindStringSubmatch(line); match != nil {
+							matches++
+						}
 					}
+					message += args[0] + ": " + fmt.Sprintf("%d", matches) + " lines"
 				}
-				message += args[0] + ": " + fmt.Sprintf("%d", matches) + " lines"
 			}
 		}
 	}
