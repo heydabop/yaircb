@@ -115,7 +115,7 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 							if match[4] == config.Nick {
 								match[4] = match[1]
 							}
-							cmd(writeChan, match[4], match[1], match[3], cmdArgs[1:])
+							go cmd(writeChan, match[4], match[1], match[3], cmdArgs[1:])
 						}
 						break
 					}
