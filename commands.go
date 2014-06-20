@@ -33,7 +33,12 @@ func initMap() map[string]command {
 }
 
 func initCmdRedis() {
-	cmdDb, _ = redis.Dial("tcp", "127.0.0.1:6379")
+	var err error
+	cmdDb, err = redis.Dial("tcp", "127.0.0.1:6379")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 func source(srvChan chan string, channel, nick, hostname string, args []string) {
@@ -160,7 +165,7 @@ func kick(srvChan chan string, channel, nick, hostname string, args []string) {
 	srvChan <- message
 }
 
-func wc(srvChan chan string, channel, nick, hostnam string, args []string) {
+func wc(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :"
 	if len(args) != 1 {
 		message += "ERROR: Invalid number of arguments"

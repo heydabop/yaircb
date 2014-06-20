@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"math/rand"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -22,7 +23,12 @@ type User struct {
 }
 
 func initWebRedis() {
-	webDb, _ = redis.Dial("tcp", "127.0.0.1:6379")
+	var err error
+	webDb, err = redis.Dial("tcp", "127.0.0.1:6379")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -47,9 +53,19 @@ func loginCheckHandler(w http.ResponseWriter, r *http.Request) {
 	pwd := hex.EncodeToString(pwdBytes[:])
 	fmt.Println("Form Values:", r.PostForm)
 	uReply := webDb.Cmd("get", uname)
-	if uFound, _ := uReply.Bool(); uFound {
+	uFound, err := uReply.Bool()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if uFound {
 		fmt.Println("user found")
-		if pwdDb, _ := uReply.Bytes(); pwd == string(pwdDb) {
+		pwdDb, err := uReply.Bytes()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if pwd == string(pwdDb) {
 			if remember {
 				c := makeCookie(uname)
 				http.SetCookie(w, &c)
@@ -57,10 +73,15 @@ func loginCheckHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("password match")
 			t, err := template.ParseFiles("user.html")
 			if err != nil {
-				fmt.Println(err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
 			pinReply := webDb.Cmd("get", uname+"Pin")
-			pin, _ := pinReply.Bytes()
+			pin, err := pinReply.Bytes()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 			u := User{uname, pwd, remember, string(pin)}
 			t.Execute(w, u)
 		} else {
@@ -89,10 +110,18 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	u := User{}
 	u.Uname = r.URL.Path[len("/user/"):]
 	reply := webDb.Cmd("get", u.Uname)
-	pwd, _ := reply.Bytes()
+	pwd, err := reply.Bytes()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	u.Pwd = string(pwd)
 	reply = webDb.Cmd("get", u.Uname+"Pin")
-	pin, _ := reply.Bytes()
+	pin, err := reply.Bytes()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	u.Pin = string(pin)
 	u.Cookie = false
 	t, err := template.ParseFiles("user.html")
@@ -103,13 +132,21 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Password:", u.Pwd)
 	fmt.Println("Pin:", u.Pin)
 	cRep := webDb.Cmd("get", u.Uname+"Cookie")
-	cFound, _ := cRep.Bool()
+	cFound, err := cRep.Bool()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	if cFound {
 		fmt.Println("found")
 		c, err := r.Cookie(u.Uname)
 		if err == nil {
 			fmt.Println("gotCookie")
-			cVal, _ := cRep.Bytes()
+			cVal, err := cRep.Bytes()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 			if c.Value == string(cVal) {
 				fmt.Println("valEqual")
 				u.Cookie = true
