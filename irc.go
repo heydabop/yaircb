@@ -27,6 +27,7 @@ var (
 type JSONconfig struct {
 	Nick string
 	Pass string
+	Hostname string
 }
 
 //output err
@@ -154,7 +155,7 @@ func main() {
 	if err == nil {
 		json.Unmarshal(configFile, &config)
 	} else {
-		config = JSONconfig{"yaircb", ""}
+		config = JSONconfig{"yaircb", "", "*"}
 	}
 
 	regexpCmds = make([]*regexp.Regexp, 3)
@@ -223,7 +224,7 @@ connectionLoop:
 			wgSrv.Add(1)
 			//launch routine to write server output to console
 			go readFromServer(socket, readChan, &wgSrv, quit)
-			err = socket.Writer.PrintfLine("USER " + config.Nick + " * * " + config.Nick)
+			err = socket.Writer.PrintfLine("USER " + config.Nick + " " + config.Hostname + " * :yaircb")
 			if err != nil {
 				errOut(err, quit)
 			}
