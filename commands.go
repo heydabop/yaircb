@@ -221,7 +221,7 @@ func top5(srvChan chan string, channel, nick, hostname string, args []string) {
 				matches := make(map[string]uint)
 				for _, line := range logLines {
 					if match := nickLine.FindStringSubmatch(line); match != nil {
-						matches[match[1]]++
+						matches[strings.ToLower(match[1])]++
 					}
 				}
 				for i := 0; i < 5; i++ {
@@ -236,7 +236,7 @@ func top5(srvChan chan string, channel, nick, hostname string, args []string) {
 					if maxLines < 1 {
 						break
 					}
-					message += maxNick + ": " + fmt.Sprintf("%d", maxLines) + " lines || "
+					message += string(maxNick[0]) + string('\u200B') + maxNick[1:] + ": " + fmt.Sprintf("%d", maxLines) + " lines || "
 					delete(matches, maxNick)
 				}
 			}
