@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fzzy/radix/redis"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -50,14 +51,14 @@ func writeToServer(socket *tls.Conn, srvChan chan string, wg *sync.WaitGroup, qu
 	defer wg.Done()
 	defer fmt.Println("WTS") //debug
 
-	_, err := socket.Write([]byte(<-srvChan))
+	_, err := io.WriteString(socket, <-srvChan)
 	//send all lines in srvChan to server
 	for err == nil {
 		select {
 		case <-quit: //exit if indicated
 			return
 		case str := <-srvChan:
-			_, err = socket.Write([]byte(str))
+			_, err = io.WriteString(socket, str)
 		}
 	}
 
@@ -74,13 +75,13 @@ func readFromServer(socket *tls.Conn, srvChan chan string, wg *sync.WaitGroup, q
 	defer fmt.Println("RFS")
 
 	line := make([]byte, 512)
-	_, line_err := socket.Read(line)
-	for ; line_err == nil; _, line_err = socket.Read(line) {
+	n, line_err := socket.Read(line)
+	for ; line_err == nil; n, line_err = socket.Read(line) {
 		select {
 		case <-quit:
 			return
 		default:
-			srvChan <- string(line)
+			srvChan <- string(line[:n])
 		}
 		line = make([]byte, 512)
 	}
@@ -217,14 +218,14 @@ connectionLoop:
 			}
 			//make writer/reader to/from server
 			//send initial IRC messages, NICK and USER
-			_, err = socket.Write([]byte("NICK " + config.Nick))
+			_, err = io.WriteString(socket, "NICK " + config.Nick)
 			if err != nil {
 				errOut(err, quit)
 			}
 			wgSrv.Add(1)
 			//launch routine to write server output to console
 			go readFromServer(socket, readChan, &wgSrv, quit)
-			_, err = socket.Write([]byte("USER " + config.Nick + " " + config.Hostname + " * :yaircb"))
+			_, err = io.WriteString(socket, "USER " + config.Nick + " " + config.Hostname + " * :yaircb")
 			if err != nil {
 				errOut(err, quit)
 			}
@@ -233,7 +234,7 @@ connectionLoop:
 			if err != nil {
 				errOut(err, quit)
 			}*/
-			_, err = socket.Write([]byte("PRIVMSG NickServ :IDENTIFY " + config.Pass))
+			_, err = io.WriteString(socket, "PRIVMSG NickServ :IDENTIFY " + config.Pass)
 			wgSrv.Add(1)
 			//launch routine to send to server and get input from console
 			go writeToServer(socket, writeChan, &wgSrv, quit)
