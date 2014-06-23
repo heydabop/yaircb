@@ -233,6 +233,9 @@ func top5(srvChan chan string, channel, nick, hostname string, args []string) {
 							maxNick = nick
 						}
 					}
+					if maxLines < 1 {
+						break
+					}
 					message += maxNick + ": " + fmt.Sprintf("%d", maxLines) + " lines || "
 					delete(matches, maxNick)
 				}
