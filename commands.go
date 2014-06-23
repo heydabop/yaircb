@@ -29,6 +29,7 @@ func initMap() map[string]command {
 		"commands": command(commands),
 		"kick":     command(kick),
 		"wc":       command(wc),
+		"top5":     command(top5),
 	}
 }
 
@@ -192,6 +193,48 @@ func wc(srvChan chan string, channel, nick, hostname string, args []string) {
 						}
 					}
 					message += args[0] + ": " + fmt.Sprintf("%d", matches) + " lines"
+				}
+			}
+		}
+	}
+	fmt.Println(message)
+	srvChan <- message
+}
+
+func top5(srvChan chan string, channel, nick, hostname string, args []string) {
+	message := "PRIVMSG " + channel + " :"
+	logFile, err := os.Open(`/home/ross/irclogs/freenode/` + channel + `.log`)
+	if err != nil {
+		message += fmt.Sprintf("%s", err)
+	} else {
+		fileStat, err := logFile.Stat()
+		if err != nil {
+			message += fmt.Sprintf("%s", err)
+		} else {
+			log := make([]byte, fileStat.Size())
+			_, err = logFile.Read(log)
+			if err != nil {
+				message += fmt.Sprintf("%s", err)
+			} else {
+				logLines := strings.Split(string(log),"\n")
+				nickLine := regexp.MustCompile(`^\d\d:\d\d <[@\+\s]?(\S*?)>`)
+				matches := make(map[string]uint)
+				for _, line := range logLines {
+					if match := nickLine.FindStringSubmatch(line); match != nil {
+						matches[match[1]]++
+					}
+				}
+				for i := 0; i < 5; i++ {
+					maxLines := uint(0)
+					var maxNick string
+					for nick, lines := range matches {
+						if lines > maxLines {
+							maxLines = lines
+							maxNick = nick
+						}
+					}
+					message += maxNick + ": " + fmt.Sprintf("%d", maxLines) + " lines || "
+					delete(matches, maxNick)
 				}
 			}
 		}
