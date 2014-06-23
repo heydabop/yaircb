@@ -2,13 +2,13 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/fzzy/radix/redis"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"net/textproto"
 	"os"
 	"regexp"
 	"runtime"
@@ -46,19 +46,18 @@ func errOut(err error, quit chan bool) {
 }
 
 //take input from srvChan and send to server
-func writeToServer(socket *textproto.Conn, srvChan chan string, wg *sync.WaitGroup, quit chan bool) {
+func writeToServer(socket *tls.Conn, srvChan chan string, wg *sync.WaitGroup, quit chan bool) {
 	defer wg.Done()
 	defer fmt.Println("WTS") //debug
 
-	w := socket.Writer
-	err := w.PrintfLine(<-srvChan)
+	_, err := socket.Write([]byte(<-srvChan))
 	//send all lines in srvChan to server
 	for err == nil {
 		select {
 		case <-quit: //exit if indicated
 			return
 		case str := <-srvChan:
-			err = w.PrintfLine(str)
+			_, err = socket.Write([]byte(str))
 		}
 	}
 
@@ -70,19 +69,20 @@ func writeToServer(socket *textproto.Conn, srvChan chan string, wg *sync.WaitGro
 }
 
 //take input from connection and send to console channel
-func readFromServer(socket *textproto.Conn, srvChan chan string, wg *sync.WaitGroup, quit chan bool) {
+func readFromServer(socket *tls.Conn, srvChan chan string, wg *sync.WaitGroup, quit chan bool) {
 	defer wg.Done()
 	defer fmt.Println("RFS")
 
-	r := socket.Reader
-	line, line_err := r.ReadLine()
-	for ; line_err == nil; line, line_err = r.ReadLine() {
+	line := make([]byte, 512)
+	_, line_err := socket.Read(line)
+	for ; line_err == nil; _, line_err = socket.Read(line) {
 		select {
 		case <-quit:
 			return
 		default:
-			srvChan <- line
+			srvChan <- string(line)
 		}
+		line = make([]byte, 512)
 	}
 	if line_err != nil {
 		errOut(line_err, quit)
@@ -210,21 +210,21 @@ connectionLoop:
 			} else {
 				fmt.Println("RESTARTING...")
 			}
-			socket, err := textproto.Dial("tcp", "chat.freenode.net:6667")
+			socket, err := tls.Dial("tcp", "chat.freenode.net:6697", nil)
 			if err != nil {
 				errOut(err, quit)
 				return
 			}
 			//make writer/reader to/from server
 			//send initial IRC messages, NICK and USER
-			err = socket.Writer.PrintfLine("NICK " + config.Nick)
+			_, err = socket.Write([]byte("NICK " + config.Nick))
 			if err != nil {
 				errOut(err, quit)
 			}
 			wgSrv.Add(1)
 			//launch routine to write server output to console
 			go readFromServer(socket, readChan, &wgSrv, quit)
-			err = socket.Writer.PrintfLine("USER " + config.Nick + " " + config.Hostname + " * :yaircb")
+			_, err = socket.Write([]byte("USER " + config.Nick + " " + config.Hostname + " * :yaircb"))
 			if err != nil {
 				errOut(err, quit)
 			}
@@ -233,7 +233,7 @@ connectionLoop:
 			if err != nil {
 				errOut(err, quit)
 			}*/
-			err = socket.Writer.PrintfLine("PRIVMSG NickServ :IDENTIFY " + config.Pass)
+			_, err = socket.Write([]byte("PRIVMSG NickServ :IDENTIFY " + config.Pass))
 			wgSrv.Add(1)
 			//launch routine to send to server and get input from console
 			go writeToServer(socket, writeChan, &wgSrv, quit)
