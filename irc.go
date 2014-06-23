@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fzzy/radix/redis"
-	"io"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -51,14 +50,15 @@ func writeToServer(socket *tls.Conn, srvChan chan string, wg *sync.WaitGroup, qu
 	defer wg.Done()
 	defer fmt.Println("WTS") //debug
 
-	_, err := io.WriteString(socket, <-srvChan)
+	w := bufio.NewWriter(socket)
+	_, err := w.WriteString(<-srvChan + "\r\n")
 	//send all lines in srvChan to server
 	for err == nil {
 		select {
 		case <-quit: //exit if indicated
 			return
 		case str := <-srvChan:
-			_, err = io.WriteString(socket, str)
+			_, err = w.WriteString(str + "\r\n")
 		}
 	}
 
@@ -74,16 +74,15 @@ func readFromServer(socket *tls.Conn, srvChan chan string, wg *sync.WaitGroup, q
 	defer wg.Done()
 	defer fmt.Println("RFS")
 
-	line := make([]byte, 512)
-	n, line_err := socket.Read(line)
-	for ; line_err == nil; n, line_err = socket.Read(line) {
+	r := bufio.NewReader(socket)
+	line, line_err := r.ReadString('\n')
+	for ; line_err == nil; line, line_err = r.ReadString('\n'){
 		select {
 		case <-quit:
 			return
 		default:
-			srvChan <- string(line[:n])
+			srvChan <- line
 		}
-		line = make([]byte, 512)
 	}
 	if line_err != nil {
 		errOut(line_err, quit)
@@ -218,23 +217,26 @@ connectionLoop:
 			}
 			//make writer/reader to/from server
 			//send initial IRC messages, NICK and USER
-			_, err = io.WriteString(socket, "NICK " + config.Nick)
+			w := bufio.NewWriter(socket)
+			_, err = w.WriteString("USER " + config.Nick + " " + config.Hostname + " * :yaircb\r\n")
+			fmt.Print("USER " + config.Nick + " " + config.Hostname + " * :yaircb\r\n")
+			if err != nil {
+				errOut(err, quit)
+			}
+			_, err = w.WriteString("NICK " + config.Nick + "\r\n")
+			fmt.Print("NICK " + config.Nick + "\r\n")
 			if err != nil {
 				errOut(err, quit)
 			}
 			wgSrv.Add(1)
 			//launch routine to write server output to console
 			go readFromServer(socket, readChan, &wgSrv, quit)
-			_, err = io.WriteString(socket, "USER " + config.Nick + " " + config.Hostname + " * :yaircb")
-			if err != nil {
-				errOut(err, quit)
-			}
 			//join first channel
 			/*err = socket.Writer.PrintfLine("JOIN #ttestt")
 			if err != nil {
 				errOut(err, quit)
 			}*/
-			_, err = io.WriteString(socket, "PRIVMSG NickServ :IDENTIFY " + config.Pass)
+			_, err = w.WriteString("PRIVMSG NickServ :IDENTIFY " + config.Pass + "\r\n")
 			wgSrv.Add(1)
 			//launch routine to send to server and get input from console
 			go writeToServer(socket, writeChan, &wgSrv, quit)
