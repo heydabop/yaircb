@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"strconv"
 )
 
 var cmdDb *redis.Client
@@ -29,7 +30,7 @@ func initMap() map[string]command {
 		"commands": command(commands),
 		"kick":     command(kick),
 		"wc":       command(wc),
-		"top5":     command(top5),
+		"top":     command(top),
 	}
 }
 
@@ -201,43 +202,53 @@ func wc(srvChan chan string, channel, nick, hostname string, args []string) {
 	srvChan <- message
 }
 
-func top5(srvChan chan string, channel, nick, hostname string, args []string) {
+func top(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :"
-	logFile, err := os.Open(`/home/ross/irclogs/freenode/` + channel + `.log`)
-	if err != nil {
-		message += fmt.Sprintf("%s", err)
+	if len(args) != 1 {
+		message += "ERROR: Invalid number of arguments"
 	} else {
-		fileStat, err := logFile.Stat()
+		nicks64, err := strconv.ParseInt(args[0], 10, 0)
 		if err != nil {
 			message += fmt.Sprintf("%s", err)
 		} else {
-			log := make([]byte, fileStat.Size())
-			_, err = logFile.Read(log)
+			nicks := int(nicks64)
+			logFile, err := os.Open(`/home/ross/irclogs/freenode/` + channel + `.log`)
 			if err != nil {
 				message += fmt.Sprintf("%s", err)
 			} else {
-				logLines := strings.Split(string(log),"\n")
-				nickLine := regexp.MustCompile(`^\d\d:\d\d <[@\+\s]?(\S*?)>`)
-				matches := make(map[string]uint)
-				for _, line := range logLines {
-					if match := nickLine.FindStringSubmatch(line); match != nil {
-						matches[strings.ToLower(match[1])]++
-					}
-				}
-				for i := 0; i < 5; i++ {
-					maxLines := uint(0)
-					var maxNick string
-					for nick, lines := range matches {
-						if lines > maxLines {
-							maxLines = lines
-							maxNick = nick
+				fileStat, err := logFile.Stat()
+				if err != nil {
+					message += fmt.Sprintf("%s", err)
+				} else {
+					log := make([]byte, fileStat.Size())
+					_, err = logFile.Read(log)
+					if err != nil {
+						message += fmt.Sprintf("%s", err)
+					} else {
+						logLines := strings.Split(string(log),"\n")
+						nickLine := regexp.MustCompile(`^\d\d:\d\d <[@\+\s]?(\S*?)>`)
+						matches := make(map[string]uint)
+						for _, line := range logLines {
+							if match := nickLine.FindStringSubmatch(line); match != nil {
+								matches[strings.ToLower(match[1])]++
+							}
+						}
+						for i := 0; i < nicks; i++ {
+							maxLines := uint(0)
+							var maxNick string
+							for nick, lines := range matches {
+								if lines > maxLines {
+									maxLines = lines
+									maxNick = nick
+								}
+							}
+							if maxLines < 1 {
+								break
+							}
+							message += string(maxNick[0]) + string('\u200B') + maxNick[1:] + ": " + fmt.Sprintf("%d", maxLines) + " lines || "
+							delete(matches, maxNick)
 						}
 					}
-					if maxLines < 1 {
-						break
-					}
-					message += string(maxNick[0]) + string('\u200B') + maxNick[1:] + ": " + fmt.Sprintf("%d", maxLines) + " lines || "
-					delete(matches, maxNick)
 				}
 			}
 		}
