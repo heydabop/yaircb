@@ -18,19 +18,20 @@ type command func(chan string, string, string, string, []string)
 
 func initMap() map[string]command {
 	return map[string]command{
-		"source":   command(source),
-		"botsnack": command(botsnack),
-		"register": command(register),
-		"uptime":   command(uptime),
-		"web":      command(web),
-		"login":    command(login),
-		"verify":   command(verify),
-		"verified": command(verified),
-		"help":     command(help),
-		"commands": command(commands),
-		"kick":     command(kick),
-		"wc":       command(wc),
-		"top":      command(top),
+		"source":    command(source),
+		"botsnack":  command(botsnack),
+		"register":  command(register),
+		"uptime":    command(uptime),
+		"web":       command(web),
+		"login":     command(login),
+		"verify":    command(verify),
+		"verified":  command(verified),
+		"help":      command(help),
+		"commands":  command(commands),
+		"kick":      command(kick),
+		"wc":        command(wc),
+		"top":       command(top),
+		"footprint": command(footprint),
 	}
 }
 
@@ -267,4 +268,20 @@ func yesNo(srvChan chan string, channel, nick, hostname string) {
 	}
 	fmt.Println(message)
 	srvChan <- message
+}
+
+func footprint(srvChan chan string, channel, nick, hostname string, args []string) {
+	message := "PRIVMSG " + channel + " :"
+	pid := os.Getpid()
+	out, err := exec.Command("grep", "VmRSS", "/proc/"+fmt.Sprintf("%d", pid)+"/status").Output()
+	if err != nil {
+		message += fmt.Sprintf("%s", err)
+	} else {
+		kbRegex := regexp.MustCompile(`VmRSS:\s*(.*)`)
+		if match := kbRegex.FindStringSubmatch(string(out)); match != nil {
+			message += strings.TrimSpace(match[1])
+		}
+	}
+	srvChan <- message
+	fmt.Println(message)
 }
