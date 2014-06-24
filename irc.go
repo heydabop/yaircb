@@ -25,8 +25,8 @@ var (
 )
 
 type JSONconfig struct {
-	Nick string
-	Pass string
+	Nick     string
+	Pass     string
 	Hostname string
 }
 
@@ -81,7 +81,7 @@ func readFromServer(socket *tls.Conn, srvChan chan string, wg *sync.WaitGroup, q
 	socket.SetReadDeadline(time.Time{})
 	r := bufio.NewReader(socket)
 	line, line_err := r.ReadString('\n')
-	for ; line_err == nil; line, line_err = r.ReadString('\n'){
+	for ; line_err == nil; line, line_err = r.ReadString('\n') {
 		select {
 		case <-quit:
 			return

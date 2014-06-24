@@ -7,8 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 var cmdDb *redis.Client
@@ -30,7 +30,7 @@ func initMap() map[string]command {
 		"commands": command(commands),
 		"kick":     command(kick),
 		"wc":       command(wc),
-		"top":     command(top),
+		"top":      command(top),
 	}
 }
 
@@ -185,7 +185,7 @@ func wc(srvChan chan string, channel, nick, hostname string, args []string) {
 				if err != nil {
 					message += fmt.Sprintf("%s", err)
 				} else {
-					logLines := strings.Split(string(log),"\n")
+					logLines := strings.Split(string(log), "\n")
 					nickLine := regexp.MustCompile(`^\d\d:\d\d <[@\+\s]?` + args[0] + `>`)
 					matches := 0
 					for _, line := range logLines {
@@ -225,7 +225,7 @@ func top(srvChan chan string, channel, nick, hostname string, args []string) {
 					if err != nil {
 						message += fmt.Sprintf("%s", err)
 					} else {
-						logLines := strings.Split(string(log),"\n")
+						logLines := strings.Split(string(log), "\n")
 						nickLine := regexp.MustCompile(`^\d\d:\d\d <[@\+\s]?(\S*?)>`)
 						matches := make(map[string]uint)
 						for _, line := range logLines {
