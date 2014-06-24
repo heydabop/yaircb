@@ -100,6 +100,7 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 	defer fmt.Println("WTC") //debug
 
 	pingRegex := regexp.MustCompile("^PING (.*)")
+	questionRegex := regexp.MustCompile(`^:(\S*?)!(\S*?)@(\S*?) PRIVMSG (\S*) :` + config.Nick + `:.*\?`)
 
 	//read every line from the server chan and print to console
 	for {
@@ -112,6 +113,8 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 				//respond to PING from server
 				writeChan <- ("PONG " + match[1])
 				fmt.Println("PONG", match[1]) //put to console
+			} else if match := questionRegex.FindStringSubmatch(line); match != nil {
+				go yesNo(writeChan, match[4], match[1], match[3])
 			} else {
 				var match []string
 				for _, regexp := range regexpCmds {

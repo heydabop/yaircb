@@ -256,3 +256,15 @@ func top(srvChan chan string, channel, nick, hostname string, args []string) {
 	fmt.Println(message)
 	srvChan <- message
 }
+
+func yesNo(srvChan chan string, channel, nick, hostname string) {
+	message := "PRIVMSG " + channel + " :"
+	x := rand.Intn(2)
+	if x == 1 {
+		message += "Yes."
+	} else {
+		message += "No."
+	}
+	fmt.Println(message)
+	srvChan <- message
+}
