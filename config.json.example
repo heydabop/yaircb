@@ -1,3 +1,5 @@
-{"Nick": "yaircb",
+{"Server": "chat.freenode.net",
+ "Port": 6697,
+ "Nick": "yaircb",
  "Pass": "correcthorsebatterystaple",
  "Hostname": "example.com"}

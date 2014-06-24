@@ -26,6 +26,8 @@ var (
 )
 
 type JSONconfig struct {
+	Server   string
+	Port     int
 	Nick     string
 	Pass     string
 	Hostname string
@@ -159,7 +161,7 @@ func main() {
 	if err == nil {
 		json.Unmarshal(configFile, &config)
 	} else {
-		config = JSONconfig{"yaircb", "", "*"}
+		config = JSONconfig{"chat.freenode.net", 6697, "yaircb", "", "*"}
 	}
 
 	regexpCmds = make([]*regexp.Regexp, 3)
@@ -216,13 +218,13 @@ connectionLoop:
 			}
 			var socketRead *bufio.Reader
 			var socketWrite *bufio.Writer
-			sslSocket, err := tls.Dial("tcp", "chat.freenode.net:6697", nil)
+			sslSocket, err := tls.Dial("tcp", fmt.Sprintf("%s:%d", config.Server, config.Port), nil)
 			if err == nil {
 				sslSocket.SetReadDeadline(time.Time{})
 				socketWrite = bufio.NewWriter(sslSocket)
 				socketRead = bufio.NewReader(sslSocket)
 			} else {
-				socket, err := textproto.Dial("tcp", "chat.freenode.net:6667")
+				socket, err := textproto.Dial("tcp", fmt.Sprintf("%s:%d", config.Server, config.Port))
 				if err != nil {
 					errOut(err, quit)
 					return
