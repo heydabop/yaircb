@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"net/textproto"
 	"os"
 	"regexp"
 	"runtime/debug"
@@ -44,11 +45,10 @@ func errOut(err error, quit chan bool) {
 }
 
 //take input from srvChan and send to server
-func writeToServer(socket *tls.Conn, srvChan chan string, wg *sync.WaitGroup, quit chan bool) {
+func writeToServer(w *bufio.Writer, srvChan chan string, wg *sync.WaitGroup, quit chan bool) {
 	defer wg.Done()
 	defer fmt.Println("WTS") //debug
 
-	w := bufio.NewWriter(socket)
 	_, err := w.WriteString(<-srvChan + "\r\n")
 	if err == nil {
 		err = w.Flush()
@@ -69,17 +69,14 @@ func writeToServer(socket *tls.Conn, srvChan chan string, wg *sync.WaitGroup, qu
 	//print error and exit
 	if err != nil {
 		errOut(err, quit)
-		socket.Close()
 	}
 }
 
 //take input from connection and send to console channel
-func readFromServer(socket *tls.Conn, srvChan chan string, wg *sync.WaitGroup, quit chan bool) {
+func readFromServer(r *bufio.Reader, srvChan chan string, wg *sync.WaitGroup, quit chan bool) {
 	defer wg.Done()
 	defer fmt.Println("RFS")
 
-	socket.SetReadDeadline(time.Time{})
-	r := bufio.NewReader(socket)
 	line, line_err := r.ReadString('\n')
 	for ; line_err == nil; line, line_err = r.ReadString('\n') {
 		select {
@@ -91,7 +88,6 @@ func readFromServer(socket *tls.Conn, srvChan chan string, wg *sync.WaitGroup, q
 	}
 	if line_err != nil {
 		errOut(line_err, quit)
-		socket.Close()
 	}
 }
 
@@ -218,25 +214,35 @@ connectionLoop:
 			} else {
 				fmt.Println("RESTARTING...")
 			}
-			socket, err := tls.Dial("tcp", "chat.freenode.net:6697", nil)
-			if err != nil {
-				errOut(err, quit)
-				return
+			var socketRead *bufio.Reader
+			var socketWrite *bufio.Writer
+			sslSocket, err := tls.Dial("tcp", "chat.freenode.net:6697", nil)
+			if err == nil {
+				sslSocket.SetReadDeadline(time.Time{})
+				socketWrite = bufio.NewWriter(sslSocket)
+				socketRead = bufio.NewReader(sslSocket)
+			} else {
+				socket, err := textproto.Dial("tcp", "chat.freenode.net:6667")
+				if err != nil {
+					errOut(err, quit)
+					return
+				}
+				socketWrite = socket.Writer.W
+				socketRead = socket.Reader.R
 			}
 			//make writer/reader to/from server
 			//send initial IRC messages, NICK and USER
-			w := bufio.NewWriter(socket)
-			_, err = w.WriteString("NICK " + config.Nick + "\r\n")
+			_, err = socketWrite.WriteString("NICK " + config.Nick + "\r\n")
 			if err == nil {
-				err = w.Flush()
+				err = socketWrite.Flush()
 			}
 			fmt.Print("NICK " + config.Nick + "\r\n")
 			if err != nil {
 				errOut(err, quit)
 			}
-			_, err = w.WriteString("USER " + config.Nick + " " + config.Hostname + " * :yaircb\r\n")
+			_, err = socketWrite.WriteString("USER " + config.Nick + " " + config.Hostname + " * :yaircb\r\n")
 			if err == nil {
-				err = w.Flush()
+				err = socketWrite.Flush()
 			}
 			fmt.Print("USER " + config.Nick + " " + config.Hostname + " * :yaircb\r\n")
 			if err != nil {
@@ -244,16 +250,16 @@ connectionLoop:
 			}
 			wgSrv.Add(1)
 			//launch routine to write server output to console
-			go readFromServer(socket, readChan, &wgSrv, quit)
+			go readFromServer(socketRead, readChan, &wgSrv, quit)
 			//join first channel
 			/*err = socket.Writer.PrintfLine("JOIN #ttestt")
 			if err != nil {
 				errOut(err, quit)
 			}*/
-			_, err = w.WriteString("PRIVMSG NickServ :IDENTIFY " + config.Pass + "\r\n")
+			_, err = socketWrite.WriteString("PRIVMSG NickServ :IDENTIFY " + config.Pass + "\r\n")
 			wgSrv.Add(1)
 			//launch routine to send to server and get input from console
-			go writeToServer(socket, writeChan, &wgSrv, quit)
+			go writeToServer(socketWrite, writeChan, &wgSrv, quit)
 			wgSrv.Wait()
 		}
 	}
