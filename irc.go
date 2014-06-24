@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"runtime"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -33,9 +33,7 @@ type JSONconfig struct {
 //output err
 func errOut(err error, quit chan bool) {
 	fmt.Println("ERROR: ", err.Error())
-	var trace []byte
-	runtime.Stack(trace, false)
-	fmt.Print(trace)
+	debug.PrintStack()
 	if err.Error() == "EOF" {
 		fmt.Println("EXITING")
 		for i := 0; i < 2; i++ {
@@ -52,6 +50,9 @@ func writeToServer(socket *tls.Conn, srvChan chan string, wg *sync.WaitGroup, qu
 
 	w := bufio.NewWriter(socket)
 	_, err := w.WriteString(<-srvChan + "\r\n")
+	if err == nil {
+		err = w.Flush()
+	}
 	//send all lines in srvChan to server
 	for err == nil {
 		select {
@@ -59,6 +60,9 @@ func writeToServer(socket *tls.Conn, srvChan chan string, wg *sync.WaitGroup, qu
 			return
 		case str := <-srvChan:
 			_, err = w.WriteString(str + "\r\n")
+			if err == nil {
+				err = w.Flush()
+			}
 		}
 	}
 
@@ -74,6 +78,7 @@ func readFromServer(socket *tls.Conn, srvChan chan string, wg *sync.WaitGroup, q
 	defer wg.Done()
 	defer fmt.Println("RFS")
 
+	socket.SetReadDeadline(time.Time{})
 	r := bufio.NewReader(socket)
 	line, line_err := r.ReadString('\n')
 	for ; line_err == nil; line, line_err = r.ReadString('\n'){
@@ -81,7 +86,7 @@ func readFromServer(socket *tls.Conn, srvChan chan string, wg *sync.WaitGroup, q
 		case <-quit:
 			return
 		default:
-			srvChan <- line
+			srvChan <- strings.TrimSpace(line)
 		}
 	}
 	if line_err != nil {
@@ -218,13 +223,19 @@ connectionLoop:
 			//make writer/reader to/from server
 			//send initial IRC messages, NICK and USER
 			w := bufio.NewWriter(socket)
-			_, err = w.WriteString("USER " + config.Nick + " " + config.Hostname + " * :yaircb\r\n")
-			fmt.Print("USER " + config.Nick + " " + config.Hostname + " * :yaircb\r\n")
+			_, err = w.WriteString("NICK " + config.Nick + "\r\n")
+			if err == nil {
+				err = w.Flush()
+			}
+			fmt.Print("NICK " + config.Nick + "\r\n")
 			if err != nil {
 				errOut(err, quit)
 			}
-			_, err = w.WriteString("NICK " + config.Nick + "\r\n")
-			fmt.Print("NICK " + config.Nick + "\r\n")
+			_, err = w.WriteString("USER " + config.Nick + " " + config.Hostname + " * :yaircb\r\n")
+			if err == nil {
+				err = w.Flush()
+			}
+			fmt.Print("USER " + config.Nick + " " + config.Hostname + " * :yaircb\r\n")
 			if err != nil {
 				errOut(err, quit)
 			}
