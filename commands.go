@@ -340,22 +340,26 @@ func commit(srvChan chan string, channel, nick, hostname string, args []string) 
 				}
 				var commits []commitJSON
 				json.Unmarshal(body, &commits)
-				commitNum := rand.Intn(len(commits))
-
-				urlReader := strings.NewReader(`{"longUrl": "` + commits[commitNum].Html_url + `"}`)
-				c := http.Client{}
-				res, err := c.Post("https://www.googleapis.com/urlshortener/v1/url", "application/json", urlReader)
-				if err != nil {
-					message += fmt.Sprintf("%s", err)
+				if len(commits) < 1 {
+					message += "ERROR: No commits in selected repository"
 				} else {
-					body, err := ioutil.ReadAll(res.Body)
+					commitNum := rand.Intn(len(commits))
+					commitMsg := commits[commitNum].Commit["message"].(string)
+
+					urlReader := strings.NewReader(`{"longUrl": "` + commits[commitNum].Html_url + `"}`)
+					c := http.Client{}
+					res, err := c.Post("https://www.googleapis.com/urlshortener/v1/url", "application/json", urlReader)
 					if err != nil {
 						message += fmt.Sprintf("%s", err)
 					} else {
-						var googUrl urlJSON
-						json.Unmarshal(body, &googUrl)
-						fmt.Println(googUrl)
-						message += commits[commitNum].Commit["message"].(string) + " | " + googUrl.Id
+						body, err := ioutil.ReadAll(res.Body)
+						if err != nil {
+							message += fmt.Sprintf("%s", err)
+						} else {
+							var googUrl urlJSON
+							json.Unmarshal(body, &googUrl)
+							message += strings.Split(commitMsg, "\n")[0] + " | " + googUrl.Id
+						}
 					}
 				}
 			}
