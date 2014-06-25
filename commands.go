@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/fzzy/radix/redis"
+	"io/ioutil"
 	"math/rand"
+	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
@@ -32,6 +35,7 @@ func initMap() map[string]command {
 		"wc":        command(wc),
 		"top":       command(top),
 		"footprint": command(footprint),
+		"commit":    command(commit),
 	}
 }
 
@@ -280,6 +284,59 @@ func footprint(srvChan chan string, channel, nick, hostname string, args []strin
 		kbRegex := regexp.MustCompile(`VmRSS:\s*(.*)`)
 		if match := kbRegex.FindStringSubmatch(string(out)); match != nil {
 			message += strings.TrimSpace(match[1])
+		}
+	}
+	srvChan <- message
+	fmt.Println(message)
+}
+
+func commit(srvChan chan string, channel, nick, hostname string, args []string) {
+	type repoJSON struct {
+		Id          int
+		Owner       map[string]interface{}
+		Name        string
+		Full_name   string
+		Description string
+		Private     bool
+		Fork        bool
+		Url         string
+		Html_url    string
+	}
+	type commitJSON struct {
+		Sha          string
+		Commit       map[string]interface{}
+		Url          string
+		Html_url     string
+		Comments_url string
+		Author       map[string]interface{}
+		Committer    map[string]interface{}
+		Parents      map[string]interface{}
+	}
+	message := "PRIVMSG " + channel + " :"
+	since := rand.Intn(1000000)
+	res, err := http.Get("https://api.github.com/repositories?since=" + fmt.Sprintf("%d", since))
+	if err != nil {
+		message += fmt.Sprintf("%s", err)
+	} else {
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			message += fmt.Sprintf("%s", err)
+		} else {
+			var repos []repoJSON
+			json.Unmarshal(body, &repos)
+			fullName := repos[rand.Intn(len(repos))].Full_name
+			res, err = http.Get("https://api.github.com/repos/" + fullName + "/commits")
+			if err != nil {
+				message += fmt.Sprintf("%s", err)
+			} else {
+				body, err = ioutil.ReadAll(res.Body)
+				if err != nil {
+					message += fmt.Sprintf("%s", err)
+				}
+				var commits []commitJSON
+				json.Unmarshal(body, &commits)
+				message += commits[rand.Intn(len(commits))].Commit["message"].(string)
+			}
 		}
 	}
 	srvChan <- message
