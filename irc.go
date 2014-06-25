@@ -5,13 +5,13 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/fzzy/radix/redis"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/textproto"
 	"os"
 	"regexp"
+	"runtime"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -20,7 +20,6 @@ import (
 
 var (
 	funcMap    map[string]command
-	db         redis.Client
 	regexpCmds []*regexp.Regexp
 	config     JSONconfig
 )
@@ -156,6 +155,7 @@ func readFromConsole(srvChan chan string, wg *sync.WaitGroup, quit chan bool, er
 }
 
 func main() {
+	runtime.GOMAXPROCS(4)
 	rand.Seed(time.Now().Unix())
 	configFile, err := ioutil.ReadFile("config.json")
 	if err == nil {
@@ -171,18 +171,6 @@ func main() {
 
 	funcMap = initMap()
 	initCmdRedis()
-
-	db, err := redis.Dial("tcp", "127.0.0.1:6379")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	reply, err := db.Cmd("get", "heydabop").Bytes()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println(string(reply))
 
 	initWebRedis()
 	http.Handle("/resources/", http.StripPrefix("/resources/", http.FileServer(http.Dir("resources"))))
