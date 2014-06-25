@@ -312,6 +312,11 @@ func commit(srvChan chan string, channel, nick, hostname string, args []string) 
 		Committer    map[string]interface{}
 		Parents      map[string]interface{}
 	}
+	type urlJSON struct {
+		Kind    string
+		Id      string
+		LongUrl string
+	}
 	message := "PRIVMSG " + channel + " :"
 	since := rand.Intn(1000000)
 	res, err := http.Get("https://api.github.com/repositories?since=" + fmt.Sprintf("%d", since))
@@ -335,7 +340,24 @@ func commit(srvChan chan string, channel, nick, hostname string, args []string) 
 				}
 				var commits []commitJSON
 				json.Unmarshal(body, &commits)
-				message += commits[rand.Intn(len(commits))].Commit["message"].(string)
+				commitNum := rand.Intn(len(commits))
+
+				urlReader := strings.NewReader(`{"longUrl": "` + commits[commitNum].Html_url + `"}`)
+				c := http.Client{}
+				res, err := c.Post("https://www.googleapis.com/urlshortener/v1/url", "application/json", urlReader)
+				if err != nil {
+					message += fmt.Sprintf("%s", err)
+				} else {
+					body, err := ioutil.ReadAll(res.Body)
+					if err != nil {
+						message += fmt.Sprintf("%s", err)
+					} else {
+						var googUrl urlJSON
+						json.Unmarshal(body, &googUrl)
+						fmt.Println(googUrl)
+						message += commits[commitNum].Commit["message"].(string) + " | " + googUrl.Id
+					}
+				}
 			}
 		}
 	}
