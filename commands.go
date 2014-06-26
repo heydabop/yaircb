@@ -16,9 +16,16 @@ import (
 
 var cmdDb *redis.Client
 
-//used for calling functions using string variable contents
+//command is the format for all bot command functions. The chan string is used to send generated output to the server;
+//the first string is the channel from which the command is called and reply is sent to;
+//the second string is the nick that called the command;
+//the third string is the hostname of the user that called the command;
+//and the []string contains any arguments to the command.
+//All commands direct any output to both chan string (the IRC server) and console.
 type command func(chan string, string, string, string, []string)
 
+//initMap is used to populate the global variable funcMap in irc.go,
+//it allows calling functions based upon strings.
 func initMap() map[string]command {
 	return map[string]command{
 		"source":    command(source),
@@ -39,6 +46,7 @@ func initMap() map[string]command {
 	}
 }
 
+//initCmdRedis initializes the global variable cmdDb via the local database
 func initCmdRedis() {
 	var err error
 	cmdDb, err = redis.Dial("tcp", "127.0.0.1:6379")
@@ -48,24 +56,28 @@ func initCmdRedis() {
 	}
 }
 
+//source outputs a link to the repository on github
 func source(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :https://github.com/heydabop/yaircb"
 	fmt.Println(message)
 	srvChan <- message
 }
 
+//botsnack outputs a pointless message
 func botsnack(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :Kisses commend. Perplexities deprave."
 	fmt.Println(message)
 	srvChan <- message
 }
 
+//register outputs a link to register with the webserver
 func register(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :https://anex.us/register/"
 	fmt.Println(message)
 	srvChan <- message
 }
 
+//uptime outputs the command 'uptime'
 func uptime(srvChan chan string, channel, nick, hostname string, args []string) {
 	out, err := exec.Command("uptime").Output()
 	message := "PRIVMSG " + channel + " :" + strings.TrimSpace(string(out))
@@ -77,18 +89,24 @@ func uptime(srvChan chan string, channel, nick, hostname string, args []string) 
 	srvChan <- message
 }
 
+//web outputs a link to the homepage of the webserver
 func web(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :https://anex.us/"
 	fmt.Println(message)
 	srvChan <- message
 }
 
+//login outputs a link to the login page of the webserver
 func login(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :https://anex.us/login/"
 	fmt.Println(message)
 	srvChan <- message
 }
 
+//verify takes two arguments, the first being a username, the second being a PIN associated to that username.
+//verify <username> <pin>
+//If the username and PIN match those displayed on a user page on the webserver, then the IRC nick@hostname and webserver
+//username become associated to each other.
 func verify(srvChan chan string, channel, nick, hostname string, args []string) {
 	var message string
 	if len(args) != 2 {
@@ -114,6 +132,9 @@ func verify(srvChan chan string, channel, nick, hostname string, args []string) 
 	srvChan <- message
 }
 
+//verified takes one argument, the username against which the IRC user is testing association
+//verified <username>
+//If the IRC nick@hostname is associated to the webserver username, that state is indicated by the bot's response.
 func verified(srvChan chan string, channel, nick, hostname string, args []string) {
 	var message string
 	if len(args) != 1 {
@@ -136,12 +157,14 @@ func verified(srvChan chan string, channel, nick, hostname string, args []string
 	srvChan <- message
 }
 
+//help is currently unhelpful
 func help(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :8)"
 	fmt.Println(message)
 	srvChan <- message
 }
 
+//commands outputs every publicly callable command
 func commands(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :"
 	for command := range funcMap {
@@ -151,6 +174,9 @@ func commands(srvChan chan string, channel, nick, hostname string, args []string
 	srvChan <- message
 }
 
+//kick takes at least one and up to two arguments
+//kick <nick> <reason>
+//If the bot has OP, nick is kicked with reason. The caller of the command is held responsible...
 func kick(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "KICK " + channel + " " + nick + " :You don't tell me what to do."
 	fmt.Println(message)
@@ -172,6 +198,9 @@ func kick(srvChan chan string, channel, nick, hostname string, args []string) {
 	srvChan <- message
 }
 
+//wc takes one argument, the user who's messages are being counted
+//wc <nick>
+//wc outputs the number of messages nick has said in channel
 func wc(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :"
 	if len(args) != 1 {
@@ -207,6 +236,9 @@ func wc(srvChan chan string, channel, nick, hostname string, args []string) {
 	srvChan <- message
 }
 
+//top takes one argument, the number of nick line counts to output
+//top <n>
+//top outputs the most active n users, by outputting their nicks and the number of messages in channel
 func top(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :"
 	if len(args) != 1 {
@@ -262,6 +294,9 @@ func top(srvChan chan string, channel, nick, hostname string, args []string) {
 	srvChan <- message
 }
 
+//yesNo is not called like other commands, and is instead instantiated when a message starts with the bot name and ends
+//with a question mark.
+//yesNo randomly outputs "Yes." or "No."
 func yesNo(srvChan chan string, channel, nick, hostname string) {
 	message := "PRIVMSG " + channel + " :"
 	x := rand.Intn(2)
@@ -274,6 +309,7 @@ func yesNo(srvChan chan string, channel, nick, hostname string) {
 	srvChan <- message
 }
 
+//footprint outputs the resident memory usage of the process
 func footprint(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :"
 	pid := os.Getpid()
@@ -290,6 +326,8 @@ func footprint(srvChan chan string, channel, nick, hostname string, args []strin
 	fmt.Println(message)
 }
 
+//commit randomly selects a github repository and commit and outputs the first line of the commit
+//and a goo.gl URL of the commit
 func commit(srvChan chan string, channel, nick, hostname string, args []string) {
 	type repoJSON struct {
 		Id          int
