@@ -15,6 +15,23 @@ import (
 )
 
 var cmdDb *redis.Client
+var helpStrings = map[string]string {
+	"help": "Gives help about commands",
+	"source": "Returns link to github repository",
+	"botsnack": "8)",
+	"register": "Returns link to register on the web server",
+	"uptime": "Returns output from exeuction of 'uptime' command",
+	"web": "Returns link to home page of web server",
+	"login": "Returns link to login on the web server",
+	"verify": "Links IRC nick to web server user. Takes two arguments, web username, and PIN. Both provided on account page",
+	"verified": "Returns whether or not user is verified with web username, supplied as only argument.",
+	"commands": "Lists available commands",
+	"kick": "Kicks user with given reason. Takes two arguments, user and reason.",
+	"wc": "Displays number of messages of a user in a channel. Takes one argument, user to query",
+	"top": "Displays top n users by message count in channel. Takes one argument, number of users to show",
+	"footprint": "Displays resident memory usage of bot",
+	"commit": "Displays random commit message from github",
+}
 
 //command is the format for all bot command functions. The chan string is used to send generated output to the server;
 //the first string is the channel from which the command is called and reply is sent to;
@@ -157,9 +174,22 @@ func verified(srvChan chan string, channel, nick, hostname string, args []string
 	srvChan <- message
 }
 
-//help is currently unhelpful
+//help takes one argument, the command for which help is being requested
+//help <command>
+//returns string from helpStrings overviewing command
 func help(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :8)"
+	message := "PRIVMSG " + channel + " :"
+	if len(args) == 0 {
+		message += "Try help <command>"
+	} else if len(args) != 1 {
+		message += "ERROR: Invalid number of arguments"
+	} else {
+		if docString, found := helpStrings[args[0]]; found {
+			message += args[0] + ": " + docString
+		} else {
+			message += "Found no help for '" + args[0] + "'"
+		}
+	}
 	fmt.Println(message)
 	srvChan <- message
 }
