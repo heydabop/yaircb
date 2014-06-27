@@ -1,4 +1,4 @@
-package yaircb
+package main
 
 import (
 	"encoding/json"
