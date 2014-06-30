@@ -32,6 +32,8 @@ var helpStrings = map[string]string{
 	"footprint": "Displays resident memory usage of bot",
 	"commit":    "Displays random commit message from github",
 	"offensive": "Displays a potentially offensive statement.",
+	"dice":      "Displays a number in the range [1, 6].",
+	"coin":      "Displays either heads or tails.",
 }
 
 //command is the format for all bot command functions. The chan string is used to send generated output to the server;
@@ -62,6 +64,8 @@ func initMap() map[string]command {
 		"footprint": command(footprint),
 		"commit":    command(commit),
 		"offensive": command(offensive),
+		"dice":      command(dice),
+		"coin":      command(coin),
 	}
 }
 
@@ -439,7 +443,7 @@ func commit(srvChan chan string, channel, nick, hostname string, args []string) 
 	fmt.Println(message)
 }
 
-//"offensive displays a potentially offensive statement.",
+//offensive displays a potentially offensive statement
 func offensive(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :"
 	out, err := exec.Command("fortune", "-os").Output()
@@ -448,6 +452,25 @@ func offensive(srvChan chan string, channel, nick, hostname string, args []strin
 	} else {
 		//replace all newlines (except the last) with //, and tabs with a double space
 		message += strings.TrimSpace(strings.Replace(strings.Replace(string(out), "\t", "  ", -1), "\n", " // ", strings.Count(string(out), "\n")-1))
+	}
+	fmt.Println(message)
+	srvChan <- message
+}
+
+//dice displays a number in the range [1, 6]
+func dice(srvChan chan string, channel, nick, hostname string, args []string) {
+	message := "PRIVMSG " + channel + " :" + fmt.Sprintf("%d", rand.Intn(6)+1)
+	fmt.Println(message)
+	srvChan <- message
+}
+
+//coin displays either heads or tails
+func coin(srvChan chan string, channel, nick, hostname string, args []string) {
+	message := "PRIVMSG " + channel + " :"
+	if rand.Intn(2) == 0 {
+		message += "Heads."
+	} else {
+		message += "Tails."
 	}
 	fmt.Println(message)
 	srvChan <- message
