@@ -447,7 +447,7 @@ func offensive(srvChan chan string, channel, nick, hostname string, args []strin
 		message += fmt.Sprintf("%s", err)
 	} else {
 		//replace all newlines (except the last) with //, and tabs with a double space
-		message += strings.Replace(strings.Replace(string(out), "\t", "  ", -1), "\n", " // ", strings.Count(string(out), "\n")-1)
+		message += strings.TrimSpace(strings.Replace(strings.Replace(string(out), "\t", "  ", -1), "\n", " // ", strings.Count(string(out), "\n")-1))
 	}
 	fmt.Println(message)
 	srvChan <- message
