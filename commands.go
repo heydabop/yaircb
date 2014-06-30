@@ -15,22 +15,23 @@ import (
 )
 
 var cmdDb *redis.Client
-var helpStrings = map[string]string {
-	"help": "Gives help about commands",
-	"source": "Returns link to github repository",
-	"botsnack": "8)",
-	"register": "Returns link to register on the web server",
-	"uptime": "Returns output from exeuction of 'uptime' command",
-	"web": "Returns link to home page of web server",
-	"login": "Returns link to login on the web server",
-	"verify": "Links IRC nick to web server user. Takes two arguments, web username, and PIN. Both provided on account page",
-	"verified": "Returns whether or not user is verified with web username, supplied as only argument.",
-	"commands": "Lists available commands",
-	"kick": "Kicks user with given reason. Takes two arguments, user and reason.",
-	"wc": "Displays number of messages of a user in a channel. Takes one argument, user to query",
-	"top": "Displays top n users by message count in channel. Takes one argument, number of users to show",
+var helpStrings = map[string]string{
+	"help":      "Gives help about commands",
+	"source":    "Returns link to github repository",
+	"botsnack":  "8)",
+	"register":  "Returns link to register on the web server",
+	"uptime":    "Returns output from exeuction of 'uptime' command",
+	"web":       "Returns link to home page of web server",
+	"login":     "Returns link to login on the web server",
+	"verify":    "Links IRC nick to web server user. Takes two arguments, web username, and PIN. Both provided on account page",
+	"verified":  "Returns whether or not user is verified with web username, supplied as only argument.",
+	"commands":  "Lists available commands",
+	"kick":      "Kicks user with given reason. Takes two arguments, user and reason.",
+	"wc":        "Displays number of messages of a user in a channel. Takes one argument, user to query",
+	"top":       "Displays top n users by message count in channel. Takes one argument, number of users to show",
 	"footprint": "Displays resident memory usage of bot",
-	"commit": "Displays random commit message from github",
+	"commit":    "Displays random commit message from github",
+	"offensive": "Displays a potentially offensive statement.",
 }
 
 //command is the format for all bot command functions. The chan string is used to send generated output to the server;
@@ -60,6 +61,7 @@ func initMap() map[string]command {
 		"top":       command(top),
 		"footprint": command(footprint),
 		"commit":    command(commit),
+		"offensive": command(offensive),
 	}
 }
 
@@ -435,4 +437,18 @@ func commit(srvChan chan string, channel, nick, hostname string, args []string) 
 	}
 	srvChan <- message
 	fmt.Println(message)
+}
+
+//"offensive displays a potentially offensive statement.",
+func offensive(srvChan chan string, channel, nick, hostname string, args []string) {
+	message := "PRIVMSG " + channel + " :"
+	out, err := exec.Command("fortune", "-os").Output()
+	if err != nil {
+		message += fmt.Sprintf("%s", err)
+	} else {
+		//replace all newlines (except the last) with //, and tabs with a double space
+		message += strings.Replace(strings.Replace(string(out), "\t", "  ", -1), "\n", " // ", strings.Count(string(out), "\n")-1)
+	}
+	fmt.Println(message)
+	srvChan <- message
 }
