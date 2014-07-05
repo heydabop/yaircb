@@ -110,16 +110,16 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 			if match := pingRegex.FindStringSubmatch(line); match != nil {
 				//respond to PING from server
 				writeChan <- ("PONG " + match[1])
-				fmt.Println("PONG", match[1]) //put to console
+				fmt.Println("PONG", match[1])
 			} else if match := questionRegex.FindStringSubmatch(line); match != nil {
-				go yesNo(writeChan, match[4], match[1], match[3])
+				go yesNo(writeChan, match[4], match[1], match[3]) //reply Yes or No if bot was asked a question
 			} else if match := ctcpRegex.FindStringSubmatch(line); match != nil {
-				go ctcp(writeChan, match[4], match[1], match[3], strings.Fields(match[5]))
+				go ctcp(writeChan, match[4], match[1], match[3], strings.Fields(match[5])) //reply with CTCP if CTCP request was received
 			} else {
 				var match []string
 				for _, regexp := range regexpCmds {
 					if match = regexp.FindStringSubmatch(line); match != nil {
-						cmdArgs := strings.Fields(match[5])
+						cmdArgs := strings.Fields(match[5]) //first word is command, the rest (if any) are args for the command
 						if cmd, valid := funcMap[cmdArgs[0]]; valid {
 							if match[4] == config.Nick {
 								match[4] = match[1]
@@ -160,6 +160,7 @@ func readFromConsole(srvChan chan string, wg *sync.WaitGroup, quit chan bool, er
 func main() {
 	runtime.GOMAXPROCS(4)
 	rand.Seed(time.Now().Unix())
+	//read in bot config, or initialize default config
 	configFile, err := ioutil.ReadFile("config.json")
 	if err == nil {
 		json.Unmarshal(configFile, &config)
@@ -167,14 +168,17 @@ func main() {
 		config = JSONconfig{"chat.freenode.net", 6697, "yaircb", "", "*"}
 	}
 
+	//set up command detection regular expressions
 	regexpCmds = make([]*regexp.Regexp, 3)
 	regexpCmds[0] = regexp.MustCompile(`^:(\S*?)!(\S*?)@(\S*?) PRIVMSG (\S*) :` + config.Nick + `:\s*(.*)`)
 	regexpCmds[1] = regexp.MustCompile(`^:(\S*)?!(\S*)?@(\S*)? PRIVMSG (\S*) :\s*\+(.*)`)
 	regexpCmds[2] = regexp.MustCompile(`^:(\S*)?!(\S*)?@(\S*)? PRIVMSG (` + config.Nick + `) :\s*(.*)`)
 
+	//initialize global string->function command map
 	funcMap = initMap()
 	initCmdRedis()
 
+	//initialize web server
 	initWebRedis()
 	http.Handle("/resources/", http.StripPrefix("/resources/", http.FileServer(http.Dir("resources"))))
 	http.HandleFunc("/register/", registerHandler)
