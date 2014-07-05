@@ -98,7 +98,7 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 
 	pingRegex := regexp.MustCompile("^PING (.*)")
 	questionRegex := regexp.MustCompile(`^:(\S*?)!(\S*?)@(\S*?) PRIVMSG (\S*) :` + config.Nick + `:.*\?`)
-	ctcpRegex := regexp.MustCompile(`^:(\S*?)!(\S*?)@(\S*?) PRIVMSG (\S*) :` + "\x01" + `(.*)`) //note that the presence of \x01 at the end still needs to be checked
+	ctcpRegex := regexp.MustCompile(`^:(\S*?)!(\S*?)@(\S*?) PRIVMSG (\S*) :` + "\x01" + `(.*?)` + "\x01" + `$`)
 
 	//read every line from the server chan and print to console
 	for {
@@ -114,7 +114,7 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 			} else if match := questionRegex.FindStringSubmatch(line); match != nil {
 				go yesNo(writeChan, match[4], match[1], match[3])
 			} else if match := ctcpRegex.FindStringSubmatch(line); match != nil {
-				fmt.Println("CTCP")
+				go ctcp(writeChan, match[4], match[1], match[3], strings.Fields(match[5]))
 			} else {
 				var match []string
 				for _, regexp := range regexpCmds {

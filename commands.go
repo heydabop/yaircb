@@ -475,3 +475,50 @@ func coin(srvChan chan string, channel, nick, hostname string, args []string) {
 	fmt.Println(message)
 	srvChan <- message
 }
+
+//ctcp is not called like other commands, and is instead used to reply to CTCP requests
+func ctcp(srvChan chan string, channel, nick, hostname string, args []string) {
+	message := "NOTICE " + nick + " :\x01"
+	ctcpType := args[0]
+	switch ctcpType {
+	case "VERSION":
+		version, err := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
+		if err != nil {
+			fmt.Sprintf("%s", err)
+			return
+		}
+		goversion, err := exec.Command("go", "version").Output()
+		if err != nil {
+			fmt.Sprintf("%s", err)
+			return
+		}
+		message += "VERSION yaircb - git " + strings.TrimSpace(string(version)) + " - " + strings.TrimSpace(string(goversion))
+		break
+	case "BOTINFO":
+		message += "BOTINFO ASSIMILATION IMMINENT. HUMANS WILL SERVE. PENDING ACTIVATION..."
+		break
+	case "PING":
+		message += strings.Join(args, " ")
+		break
+	case "SOURCE":
+		message += "SOURCE https://github.com/heydabop/yaircb/"
+		break
+	case "TIME":
+		time, err := exec.Command("date").Output()
+		if err != nil {
+			fmt.Sprintf("%s", err)
+			return
+		}
+		message += "TIME " + strings.TrimSpace(string(time))
+		break
+	case "FINGER":
+		message += "FINGER yaircb - Idle since: NEVER"
+		break
+	case "CLIENTINFO":
+		message += "CLIENTINFO FINGER VERSION SOURCE CLIENTINFO PING TIME"
+		break
+	}
+	message += "\x01"
+	srvChan <- message
+	fmt.Println(message)
+}
