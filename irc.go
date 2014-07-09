@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net/http"
 	"net/textproto"
@@ -106,11 +107,11 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 		case <-quit: //exit if indicated
 			return
 		case line := <-readChan:
-			fmt.Println(line)
+			log.Println(line)
 			if match := pingRegex.FindStringSubmatch(line); match != nil {
 				//respond to PING from server
 				writeChan <- ("PONG " + match[1])
-				fmt.Println("PONG", match[1])
+				log.Println("PONG", match[1])
 			} else if match := questionRegex.FindStringSubmatch(line); match != nil {
 				go yesNo(writeChan, match[4], match[1], match[3]) //reply Yes or No if bot was asked a question
 			} else if match := ctcpRegex.FindStringSubmatch(line); match != nil {
@@ -207,9 +208,9 @@ connectionLoop:
 			break connectionLoop
 		default: //otherwise restart connections
 			if conns == 0 {
-				fmt.Println("STARTING...")
+				log.Println("STARTING...")
 			} else {
-				fmt.Println("RESTARTING...")
+				log.Println("RESTARTING...")
 			}
 			var socketRead *bufio.Reader
 			var socketWrite *bufio.Writer
@@ -233,7 +234,7 @@ connectionLoop:
 			if err == nil {
 				err = socketWrite.Flush()
 			}
-			fmt.Print("NICK " + config.Nick + "\r\n")
+			log.Print("NICK " + config.Nick + "\r\n")
 			if err != nil {
 				errOut(err, quit)
 			}
@@ -241,7 +242,7 @@ connectionLoop:
 			if err == nil {
 				err = socketWrite.Flush()
 			}
-			fmt.Print("USER " + config.Nick + " " + config.Hostname + " * :yaircb\r\n")
+			log.Print("USER " + config.Nick + " " + config.Hostname + " * :yaircb\r\n")
 			if err != nil {
 				errOut(err, quit)
 			}

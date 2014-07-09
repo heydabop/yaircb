@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/fzzy/radix/redis"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -74,7 +75,7 @@ func initCmdRedis() {
 	var err error
 	cmdDb, err = redis.Dial("tcp", "127.0.0.1:6379")
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 }
@@ -82,21 +83,21 @@ func initCmdRedis() {
 //source outputs a link to the repository on github
 func source(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :https://github.com/heydabop/yaircb"
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
 //botsnack outputs a pointless message
 func botsnack(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :Kisses commend. Perplexities deprave."
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
 //register outputs a link to register with the webserver
 func register(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :https://anex.us/register/"
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
@@ -105,24 +106,24 @@ func uptime(srvChan chan string, channel, nick, hostname string, args []string) 
 	out, err := exec.Command("uptime").Output()
 	message := "PRIVMSG " + channel + " :" + strings.TrimSpace(string(out))
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
 //web outputs a link to the homepage of the webserver
 func web(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :https://anex.us/"
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
 //login outputs a link to the login page of the webserver
 func login(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :https://anex.us/login/"
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
@@ -131,7 +132,7 @@ func login(srvChan chan string, channel, nick, hostname string, args []string) {
 //If the username and PIN match those displayed on a user page on the webserver, then the IRC nick@hostname and webserver
 //username become associated to each other.
 func verify(srvChan chan string, channel, nick, hostname string, args []string) {
-	var message string
+	message := "PRIVMSG " + channel + " :"
 	if len(args) != 2 {
 		message = "PRIVMSG " + channel + " :ERROR: Invalid number of arguments"
 	} else {
@@ -140,18 +141,18 @@ func verify(srvChan chan string, channel, nick, hostname string, args []string) 
 		reply := cmdDb.Cmd("get", uname+"Pin")
 		pinDb, err := (reply.Bytes())
 		if err != nil {
-			message = "PRIVMSG " + channel + " :" + fmt.Sprintf("%s", err)
+			log.Println(err.Error())
+			return
+		}
+		if string(pinDb) == pin {
+			message += "You are now verified as " + uname
+			cmdDb.Cmd("set", uname+"Host", hostname)
+			cmdDb.Cmd("set", uname+"Pin", fmt.Sprintf("%06d", rand.Intn(1000000)))
 		} else {
-			if string(pinDb) == pin {
-				message = "PRIVMSG " + channel + " :You are now verified as " + uname
-				cmdDb.Cmd("set", uname+"Host", hostname)
-				cmdDb.Cmd("set", uname+"Pin", fmt.Sprintf("%06d", rand.Intn(1000000)))
-			} else {
-				message = "PRIVMSG " + channel + " :PIN does not match that of " + uname
-			}
+			message += "PIN does not match that of " + uname
 		}
 	}
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
@@ -159,24 +160,23 @@ func verify(srvChan chan string, channel, nick, hostname string, args []string) 
 //verified <username>
 //If the IRC nick@hostname is associated to the webserver username, that state is indicated by the bot's response.
 func verified(srvChan chan string, channel, nick, hostname string, args []string) {
-	var message string
+	message := "PRIVMSG " + channel + " :"
 	if len(args) != 1 {
-		message = "PRIVMSG " + channel + " :ERROR: Invalid number of arguments"
+		message += ":ERROR: Invalid number of arguments"
 	} else {
 		uname := args[0]
 		reply := cmdDb.Cmd("get", uname+"Host")
 		hostnameDb, err := reply.Bytes()
 		if err != nil {
-			message = "PRIVMSG " + channel + " :" + fmt.Sprintf("%s", err)
+			log.Println(err.Error())
+		}
+		if hostname == string(hostnameDb) {
+			message += ":You are " + uname + " at " + hostname
 		} else {
-			if hostname == string(hostnameDb) {
-				message = "PRIVMSG " + channel + " :You are " + uname + " at " + hostname
-			} else {
-				message = "PRIVMSG " + channel + " :You are not " + uname
-			}
+			message += ":You are not " + uname
 		}
 	}
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
@@ -196,7 +196,7 @@ func help(srvChan chan string, channel, nick, hostname string, args []string) {
 			message += "Found no help for '" + args[0] + "'"
 		}
 	}
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
@@ -206,7 +206,7 @@ func commands(srvChan chan string, channel, nick, hostname string, args []string
 	for command := range funcMap {
 		message += command + " "
 	}
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
@@ -215,7 +215,7 @@ func commands(srvChan chan string, channel, nick, hostname string, args []string
 //If the bot has OP, nick is kicked with reason. The caller of the command is held responsible...
 func kick(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "KICK " + channel + " " + nick + " :You don't tell me what to do."
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 
 	message = "KICK " + channel
@@ -230,7 +230,7 @@ func kick(srvChan chan string, channel, nick, hostname string, args []string) {
 	if len(args) >= 2 {
 		message += " :" + strings.Join(args[1:], " ")
 	}
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
@@ -244,31 +244,30 @@ func wc(srvChan chan string, channel, nick, hostname string, args []string) {
 	} else {
 		logFile, err := os.Open(`/home/ross/irclogs/freenode/` + channel + `.log`)
 		if err != nil {
-			message += fmt.Sprintf("%s", err)
-		} else {
-			fileStat, err := logFile.Stat()
-			if err != nil {
-				message += fmt.Sprintf("%s", err)
-			} else {
-				log := make([]byte, fileStat.Size())
-				_, err = logFile.Read(log)
-				if err != nil {
-					message += fmt.Sprintf("%s", err)
-				} else {
-					logLines := strings.Split(string(log), "\n")
-					nickLine := regexp.MustCompile(`^\d\d:\d\d <[@\+\s]?` + args[0] + `>`)
-					matches := 0
-					for _, line := range logLines {
-						if match := nickLine.FindStringSubmatch(line); match != nil {
-							matches++
-						}
-					}
-					message += args[0] + ": " + fmt.Sprintf("%d", matches) + " lines"
-				}
+			log.Println(err.Error())
+		}
+		fileStat, err := logFile.Stat()
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
+		logBytes := make([]byte, fileStat.Size())
+		_, err = logFile.Read(logBytes)
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
+		logLines := strings.Split(string(logBytes), "\n")
+		nickLine := regexp.MustCompile(`^\d\d:\d\d <[@\+\s]?` + args[0] + `>`)
+		matches := 0
+		for _, line := range logLines {
+			if match := nickLine.FindStringSubmatch(line); match != nil {
+				matches++
 			}
 		}
+		message += args[0] + ": " + fmt.Sprintf("%d", matches) + " lines"
 	}
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
@@ -282,51 +281,51 @@ func top(srvChan chan string, channel, nick, hostname string, args []string) {
 	} else {
 		nicks64, err := strconv.ParseInt(args[0], 10, 0)
 		if err != nil {
-			message += fmt.Sprintf("%s", err)
-		} else {
-			nicks := int(nicks64)
-			logFile, err := os.Open(`/home/ross/irclogs/freenode/` + channel + `.log`)
-			if err != nil {
-				message += fmt.Sprintf("%s", err)
-			} else {
-				fileStat, err := logFile.Stat()
-				if err != nil {
-					message += fmt.Sprintf("%s", err)
-				} else {
-					log := make([]byte, fileStat.Size())
-					_, err = logFile.Read(log)
-					if err != nil {
-						message += fmt.Sprintf("%s", err)
-					} else {
-						logLines := strings.Split(string(log), "\n")
-						nickLine := regexp.MustCompile(`^\d\d:\d\d <[@\+\s]?(\S*?)>`)
-						matches := make(map[string]uint)
-						for _, line := range logLines {
-							if match := nickLine.FindStringSubmatch(line); match != nil {
-								matches[strings.ToLower(match[1])]++
-							}
-						}
-						for i := 0; i < nicks; i++ {
-							maxLines := uint(0)
-							var maxNick string
-							for nick, lines := range matches {
-								if lines > maxLines {
-									maxLines = lines
-									maxNick = nick
-								}
-							}
-							if maxLines < 1 {
-								break
-							}
-							message += string(maxNick[0]) + string('\u200B') + maxNick[1:] + ": " + fmt.Sprintf("%d", maxLines) + " lines || "
-							delete(matches, maxNick)
-						}
-					}
-				}
+			log.Println(err.Error())
+			return
+		}
+		nicks := int(nicks64)
+		logFile, err := os.Open(`/home/ross/irclogs/freenode/` + channel + `.log`)
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
+		fileStat, err := logFile.Stat()
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
+		logBytes := make([]byte, fileStat.Size())
+		_, err = logFile.Read(logBytes)
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
+		logLines := strings.Split(string(logBytes), "\n")
+		nickLine := regexp.MustCompile(`^\d\d:\d\d <[@\+\s]?(\S*?)>`)
+		matches := make(map[string]uint)
+		for _, line := range logLines {
+			if match := nickLine.FindStringSubmatch(line); match != nil {
+				matches[strings.ToLower(match[1])]++
 			}
 		}
+		for i := 0; i < nicks; i++ {
+			maxLines := uint(0)
+			var maxNick string
+			for nick, lines := range matches {
+				if lines > maxLines {
+					maxLines = lines
+					maxNick = nick
+				}
+			}
+			if maxLines < 1 {
+				break
+			}
+			message += string(maxNick[0]) + string('\u200B') + maxNick[1:] + ": " + fmt.Sprintf("%d", maxLines) + " lines || "
+			delete(matches, maxNick)
+		}
 	}
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
@@ -341,7 +340,7 @@ func yesNo(srvChan chan string, channel, nick, hostname string) {
 	} else {
 		message += "No."
 	}
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
@@ -351,15 +350,15 @@ func footprint(srvChan chan string, channel, nick, hostname string, args []strin
 	pid := os.Getpid()
 	out, err := exec.Command("grep", "VmRSS", "/proc/"+fmt.Sprintf("%d", pid)+"/status").Output()
 	if err != nil {
-		message += fmt.Sprintf("%s", err)
-	} else {
-		kbRegex := regexp.MustCompile(`VmRSS:\s*(.*)`)
-		if match := kbRegex.FindStringSubmatch(string(out)); match != nil {
-			message += strings.TrimSpace(match[1])
-		}
+		log.Println(err.Error())
+		return
+	}
+	kbRegex := regexp.MustCompile(`VmRSS:\s*(.*)`)
+	if match := kbRegex.FindStringSubmatch(string(out)); match != nil {
+		message += strings.TrimSpace(match[1])
 	}
 	srvChan <- message
-	fmt.Println(message)
+	log.Println(message)
 }
 
 //commit randomly selects a github repository and commit and outputs the first line of the commit
@@ -395,52 +394,53 @@ func commit(srvChan chan string, channel, nick, hostname string, args []string) 
 	since := rand.Intn(1000000)
 	res, err := http.Get("https://api.github.com/repositories?since=" + fmt.Sprintf("%d", since))
 	if err != nil {
-		message += fmt.Sprintf("%s", err)
+		log.Println(err.Error())
+		return
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	var repos []repoJSON
+	json.Unmarshal(body, &repos)
+	fullName := repos[rand.Intn(len(repos))].Full_name
+	res, err = http.Get("https://api.github.com/repos/" + fullName + "/commits")
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	body, err = ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	var commits []commitJSON
+	json.Unmarshal(body, &commits)
+	if len(commits) < 1 {
+		message += "ERROR: No commits in selected repository"
 	} else {
+		commitNum := rand.Intn(len(commits))
+		commitMsg := commits[commitNum].Commit["message"].(string)
+
+		urlReader := strings.NewReader(`{"longUrl": "` + commits[commitNum].Html_url + `"}`)
+		c := http.Client{}
+		res, err := c.Post("https://www.googleapis.com/urlshortener/v1/url", "application/json", urlReader)
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			message += fmt.Sprintf("%s", err)
-		} else {
-			var repos []repoJSON
-			json.Unmarshal(body, &repos)
-			fullName := repos[rand.Intn(len(repos))].Full_name
-			res, err = http.Get("https://api.github.com/repos/" + fullName + "/commits")
-			if err != nil {
-				message += fmt.Sprintf("%s", err)
-			} else {
-				body, err = ioutil.ReadAll(res.Body)
-				if err != nil {
-					message += fmt.Sprintf("%s", err)
-				}
-				var commits []commitJSON
-				json.Unmarshal(body, &commits)
-				if len(commits) < 1 {
-					message += "ERROR: No commits in selected repository"
-				} else {
-					commitNum := rand.Intn(len(commits))
-					commitMsg := commits[commitNum].Commit["message"].(string)
-
-					urlReader := strings.NewReader(`{"longUrl": "` + commits[commitNum].Html_url + `"}`)
-					c := http.Client{}
-					res, err := c.Post("https://www.googleapis.com/urlshortener/v1/url", "application/json", urlReader)
-					if err != nil {
-						message += fmt.Sprintf("%s", err)
-					} else {
-						body, err := ioutil.ReadAll(res.Body)
-						if err != nil {
-							message += fmt.Sprintf("%s", err)
-						} else {
-							var googUrl urlJSON
-							json.Unmarshal(body, &googUrl)
-							message += strings.Split(commitMsg, "\n")[0] + " | " + googUrl.Id
-						}
-					}
-				}
-			}
+			log.Println(err.Error())
+			return
 		}
+		var googUrl urlJSON
+		json.Unmarshal(body, &googUrl)
+		message += strings.Split(commitMsg, "\n")[0] + " | " + googUrl.Id
 	}
 	srvChan <- message
-	fmt.Println(message)
+	log.Println(message)
 }
 
 //offensive displays a potentially offensive statement
@@ -448,19 +448,19 @@ func offensive(srvChan chan string, channel, nick, hostname string, args []strin
 	message := "PRIVMSG " + channel + " :"
 	out, err := exec.Command("fortune", "-os").Output()
 	if err != nil {
-		message += fmt.Sprintf("%s", err)
-	} else {
-		//replace all newlines (except the last) with //, and tabs with a double space
-		message += strings.TrimSpace(strings.Replace(strings.Replace(string(out), "\t", "  ", -1), "\n", " // ", strings.Count(string(out), "\n")-1))
+		log.Println(err.Error())
+		return
 	}
-	fmt.Println(message)
+	//replace all newlines (except the last) with //, and tabs with a double space
+	message += strings.TrimSpace(strings.Replace(strings.Replace(string(out), "\t", "  ", -1), "\n", " // ", strings.Count(string(out), "\n")-1))
+	log.Println(message)
 	srvChan <- message
 }
 
 //dice displays a number in the range [1, 6]
 func dice(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :" + fmt.Sprintf("%d", rand.Intn(6)+1)
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
@@ -472,7 +472,7 @@ func coin(srvChan chan string, channel, nick, hostname string, args []string) {
 	} else {
 		message += "Tails."
 	}
-	fmt.Println(message)
+	log.Println(message)
 	srvChan <- message
 }
 
@@ -484,12 +484,12 @@ func ctcp(srvChan chan string, channel, nick, hostname string, args []string) {
 	case "VERSION":
 		version, err := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
 		if err != nil {
-			fmt.Sprintf("%s", err)
+			log.Println(err.Error())
 			return
 		}
 		goversion, err := exec.Command("go", "version").Output()
 		if err != nil {
-			fmt.Sprintf("%s", err)
+			log.Println(err.Error())
 			return
 		}
 		message += "VERSION yaircb - git " + strings.TrimSpace(string(version)) + " - " + strings.TrimSpace(string(goversion))
@@ -506,7 +506,7 @@ func ctcp(srvChan chan string, channel, nick, hostname string, args []string) {
 	case "TIME":
 		time, err := exec.Command("date").Output()
 		if err != nil {
-			fmt.Sprintf("%s", err)
+			log.Println(err.Error())
 			return
 		}
 		message += "TIME " + strings.TrimSpace(string(time))
@@ -520,5 +520,5 @@ func ctcp(srvChan chan string, channel, nick, hostname string, args []string) {
 	}
 	message += "\x01"
 	srvChan <- message
-	fmt.Println(message)
+	log.Println(message)
 }
