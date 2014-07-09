@@ -284,45 +284,49 @@ func top(srvChan chan string, channel, nick, hostname string, args []string) {
 			log.Println(err.Error())
 			return
 		}
-		nicks := int(nicks64)
-		logFile, err := os.Open(`/home/ross/irclogs/freenode/` + channel + `.log`)
-		if err != nil {
-			log.Println(err.Error())
-			return
-		}
-		fileStat, err := logFile.Stat()
-		if err != nil {
-			log.Println(err.Error())
-			return
-		}
-		logBytes := make([]byte, fileStat.Size())
-		_, err = logFile.Read(logBytes)
-		if err != nil {
-			log.Println(err.Error())
-			return
-		}
-		logLines := strings.Split(string(logBytes), "\n")
-		nickLine := regexp.MustCompile(`^\d\d:\d\d <[@\+\s]?(\S*?)>`)
-		matches := make(map[string]uint)
-		for _, line := range logLines {
-			if match := nickLine.FindStringSubmatch(line); match != nil {
-				matches[strings.ToLower(match[1])]++
+		if nicks64 < 1 {
+			message += "ERROR: Must supply a positive integer"
+		} else {
+			nicks := int(nicks64)
+			logFile, err := os.Open(`/home/ross/irclogs/freenode/` + channel + `.log`)
+			if err != nil {
+				log.Println(err.Error())
+				return
 			}
-		}
-		for i := 0; i < nicks; i++ {
-			maxLines := uint(0)
-			var maxNick string
-			for nick, lines := range matches {
-				if lines > maxLines {
-					maxLines = lines
-					maxNick = nick
+			fileStat, err := logFile.Stat()
+			if err != nil {
+				log.Println(err.Error())
+				return
+			}
+			logBytes := make([]byte, fileStat.Size())
+			_, err = logFile.Read(logBytes)
+			if err != nil {
+				log.Println(err.Error())
+				return
+			}
+			logLines := strings.Split(string(logBytes), "\n")
+			nickLine := regexp.MustCompile(`^\d\d:\d\d <[@\+\s]?(\S*?)>`)
+			matches := make(map[string]uint)
+			for _, line := range logLines {
+				if match := nickLine.FindStringSubmatch(line); match != nil {
+					matches[strings.ToLower(match[1])]++
 				}
 			}
-			if maxLines < 1 {
-				break
+			for i := 0; i < nicks; i++ {
+				maxLines := uint(0)
+				var maxNick string
+				for nick, lines := range matches {
+					if lines > maxLines {
+						maxLines = lines
+						maxNick = nick
+					}
+				}
+				if maxLines < 1 {
+					break
+				}
+				message += string(maxNick[0]) + string('\u200B') + maxNick[1:] + ": " + fmt.Sprintf("%d", maxLines) + " lines || "
+				delete(matches, maxNick)
 			}
-			message += string(maxNick[0]) + string('\u200B') + maxNick[1:] + ": " + fmt.Sprintf("%d", maxLines) + " lines || "
-			delete(matches, maxNick)
 		}
 	}
 	log.Println(message)
