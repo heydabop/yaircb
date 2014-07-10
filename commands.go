@@ -35,6 +35,7 @@ var helpStrings = map[string]string{
 	"offensive": "Displays a potentially offensive statement.",
 	"dice":      "Displays a number in the range [1, 6].",
 	"coin":      "Displays either heads or tails.",
+	"excuse":    "Fetches an excuse from http://programmingexcuses.com/",
 }
 
 //command is the format for all bot command functions. The chan string is used to send generated output to the server;
@@ -67,6 +68,7 @@ func initMap() map[string]command {
 		"offensive": command(offensive),
 		"dice":      command(dice),
 		"coin":      command(coin),
+		"excuse":    command(excuse),
 	}
 }
 
@@ -523,6 +525,31 @@ func ctcp(srvChan chan string, channel, nick, hostname string, args []string) {
 		break
 	}
 	message += "\x01"
+	srvChan <- message
+	log.Println(message)
+}
+
+//excuse fetches an excuse from http://programmingexcuses.com/
+func excuse(srvChan chan string, channel, nick, hostname string, args []string) {
+	message := "PRIVMSG " + channel + " :"
+	res, err := http.Get("http://programmingexcuses.com/")
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	res.Body.Close()
+	linkRegexp := regexp.MustCompile(`<a href="/" rel="nofollow" .*?>(.*?)</a>`)
+	if match := linkRegexp.FindStringSubmatch(string(body)); match != nil {
+		message += match[1]
+	} else {
+		log.Println("ERROR: No match")
+		return
+	}
 	srvChan <- message
 	log.Println(message)
 }
