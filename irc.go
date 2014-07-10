@@ -98,7 +98,7 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 	defer fmt.Println("WTC") //debug
 
 	pingRegex := regexp.MustCompile("^PING (.*)")
-	questionRegex := regexp.MustCompile(`^:(\S*?)!(\S*?)@(\S*?) PRIVMSG (\S*) :` + config.Nick + `:.*\?`)
+	questionRegex := regexp.MustCompile(`^:(\S*?)!(\S*?)@(\S*?) PRIVMSG (\S*) :` + config.Nick + `.*\?`)
 	ctcpRegex := regexp.MustCompile(`^:(\S*?)!(\S*?)@(\S*?) PRIVMSG (\S*) :` + "\x01" + `(.*?)` + "\x01" + `$`)
 
 	//read every line from the server chan and print to console
@@ -171,7 +171,7 @@ func main() {
 
 	//set up command detection regular expressions
 	regexpCmds = make([]*regexp.Regexp, 3)
-	regexpCmds[0] = regexp.MustCompile(`^:(\S*?)!(\S*?)@(\S*?) PRIVMSG (\S*) :` + config.Nick + `:\s*(.*)`)
+	regexpCmds[0] = regexp.MustCompile(`^:(\S*?)!(\S*?)@(\S*?) PRIVMSG (\S*) :` + config.Nick + `\W?\s*(.*)`)
 	regexpCmds[1] = regexp.MustCompile(`^:(\S*)?!(\S*)?@(\S*)? PRIVMSG (\S*) :\s*\+(.*)`)
 	regexpCmds[2] = regexp.MustCompile(`^:(\S*)?!(\S*)?@(\S*)? PRIVMSG (` + config.Nick + `) :\s*(.*)`)
 

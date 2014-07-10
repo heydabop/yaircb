@@ -186,7 +186,7 @@ func verified(srvChan chan string, channel, nick, hostname string, args []string
 func help(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :"
 	if len(args) == 0 {
-		message += "Try help <command>"
+		message += "Try help <command>. For a list of commands try 'yaircb: commands'"
 	} else if len(args) != 1 {
 		message += "ERROR: Invalid number of arguments"
 	} else {
