@@ -1,5 +1,6 @@
 {"Server": "chat.freenode.net",
- "Port": 6697,
+ "Port": 6667,
  "Nick": "yaircb",
- "Pass": "correcthorsebatterystaple",
- "Hostname": "example.com"}
+ "NickServPass": "correcthorsebatterystaple",
+ "Hostname": "example.com",
+ "TLS": false}

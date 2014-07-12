@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -26,11 +27,12 @@ var (
 )
 
 type JSONconfig struct {
-	Server   string
-	Port     int
-	Nick     string
-	Pass     string
-	Hostname string
+	Server       string
+	Port         int
+	Nick         string
+	NickServPass string
+	Hostname     string
+	TLS          bool
 }
 
 //output err
@@ -166,7 +168,7 @@ func main() {
 	if err == nil {
 		json.Unmarshal(configFile, &config)
 	} else {
-		config = JSONconfig{"chat.freenode.net", 6697, "yaircb", "", "*"}
+		config = JSONconfig{"chat.freenode.net", 6697, "yaircb", "", "*", false}
 	}
 
 	//set up command detection regular expressions
@@ -214,12 +216,21 @@ connectionLoop:
 			}
 			var socketRead *bufio.Reader
 			var socketWrite *bufio.Writer
-			sslSocket, err := tls.Dial("tcp", fmt.Sprintf("%s:%d", config.Server, config.Port), nil)
-			if err == nil {
-				sslSocket.SetReadDeadline(time.Time{})
-				socketWrite = bufio.NewWriter(sslSocket)
-				socketRead = bufio.NewReader(sslSocket)
-			} else {
+			err := errors.New("")
+			if config.TLS {
+				log.Printf("Connecting to %s:%d with TLS...\n", config.Server, config.Port)
+				var sslSocket *tls.Conn
+				sslSocket, err = tls.Dial("tcp", fmt.Sprintf("%s:%d", config.Server, config.Port), nil)
+				if err == nil {
+					sslSocket.SetReadDeadline(time.Time{})
+					socketWrite = bufio.NewWriter(sslSocket)
+					socketRead = bufio.NewReader(sslSocket)
+				} else {
+					log.Println("Disabling TLS...")
+				}
+			}
+			if err != nil || !config.TLS { //!config.TLS shouldn't actually be evaluted, as err != nil would be true from err init
+				log.Printf("Connecting to %s:%d...\n", config.Server, config.Port)
 				socket, err := textproto.Dial("tcp", fmt.Sprintf("%s:%d", config.Server, config.Port))
 				if err != nil {
 					errOut(err, quit)
@@ -254,7 +265,13 @@ connectionLoop:
 			if err != nil {
 				errOut(err, quit)
 			}*/
-			_, err = socketWrite.WriteString("PRIVMSG NickServ :IDENTIFY " + config.Pass + "\r\n")
+			_, err = socketWrite.WriteString("PRIVMSG NickServ :IDENTIFY " + config.NickServPass + "\r\n")
+			if err == nil {
+				err = socketWrite.Flush()
+			}
+			if err != nil {
+				errOut(err, quit)
+			}
 			wgSrv.Add(1)
 			//launch routine to send to server and get input from console
 			go writeToServer(socketWrite, writeChan, &wgSrv, quit)
