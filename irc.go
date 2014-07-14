@@ -36,24 +36,28 @@ type JSONconfig struct {
 }
 
 //output err
-func errOut(err error, quit chan bool) {
-	fmt.Println("ERROR: ", err.Error())
+func errOut(err error, quitChans chan chan bool) {
+	log.Println("ERROR: ", err.Error())
 	debug.PrintStack()
-	if err.Error() == "EOF" {
-		fmt.Println("EXITING")
-		for i := 0; i < 2; i++ {
+	log.Println("EXITING")
+	chanLoop: for {
+		select {
+		case quit := <- quitChans:
 			quit <- true
+			close(quit)
+		default:
+			break chanLoop
 		}
-		fmt.Println("QUITS SENT")
 	}
+	log.Println("QUITS SENT")
 }
 
 //take input from srvChan and send to server
-func writeToServer(w *bufio.Writer, srvChan chan string, wg *sync.WaitGroup, quit chan bool) {
+func writeToServer(w *bufio.Writer, srvChan chan string, wg *sync.WaitGroup, quit chan bool, quitChans chan chan bool) {
 	defer wg.Done()
 	defer fmt.Println("WTS") //debug
 
-	_, err := w.WriteString(<-srvChan + "\r\n")
+	_, err := w.WriteString("PING" + config.Nick + "\r\n") //test message. primarily to get to select loop
 	if err == nil {
 		err = w.Flush()
 	}
@@ -72,12 +76,12 @@ func writeToServer(w *bufio.Writer, srvChan chan string, wg *sync.WaitGroup, qui
 
 	//print error and exit
 	if err != nil {
-		errOut(err, quit)
+		errOut(err, quitChans)
 	}
 }
 
 //take input from connection and send to console channel
-func readFromServer(r *bufio.Reader, srvChan chan string, wg *sync.WaitGroup, quit chan bool) {
+func readFromServer(r *bufio.Reader, srvChan chan string, wg *sync.WaitGroup, quit chan bool, quitChans chan chan bool) {
 	defer wg.Done()
 	defer fmt.Println("RFS")
 
@@ -91,11 +95,11 @@ func readFromServer(r *bufio.Reader, srvChan chan string, wg *sync.WaitGroup, qu
 		}
 	}
 	if line_err != nil {
-		errOut(line_err, quit)
+		errOut(line_err, quitChans)
 	}
 }
 
-func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGroup, quit chan bool) {
+func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGroup, quit chan bool, quitChans chan chan bool) {
 	defer wg.Done()
 	defer fmt.Println("WTC") //debug
 
@@ -138,7 +142,7 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 }
 
 //read input from console and send to srvChan
-func readFromConsole(srvChan chan string, wg *sync.WaitGroup, quit chan bool, error chan bool) {
+func readFromConsole(srvChan chan string, wg *sync.WaitGroup, error chan bool, quitChans chan chan bool) {
 	defer wg.Done()
 	defer fmt.Println("RFC") //debug
 
@@ -156,7 +160,7 @@ func readFromConsole(srvChan chan string, wg *sync.WaitGroup, quit chan bool, er
 	//print error and exit
 	if err := in.Err(); err != nil {
 		error <- true
-		errOut(err, quit)
+		errOut(err, quitChans)
 	}
 }
 
@@ -197,22 +201,26 @@ func main() {
 	readChan := make(chan string)  //send strings from readFromServer to writeToConsole
 	//wgSrv for goroutines to/from sever, wg for readFromConsole
 	var wgSrv, wg sync.WaitGroup
-	quit := make(chan bool, 2)  //used to indicate server to/from goroutines need to exit
+	quitChans := make(chan chan bool, 2)
 	error := make(chan bool, 1) //used to indicate readFromConsole exited
 	//initiate connection
 	wg.Add(2)
-	go readFromConsole(writeChan, &wg, quit, error)   //doesnt get restarted on connection EOF
-	go writeToConsole(readChan, writeChan, &wg, quit) //doesnt get restarted on connection EOF
+	go readFromConsole(writeChan, &wg, error, quitChans)   //doesnt get restarted on connection EOF
+	wtsQChan := make(chan bool, 1)
+	go writeToConsole(readChan, writeChan, &wg, wtsQChan, quitChans) //doesnt get restarted on connection EOF
 connectionLoop:
 	for ; ; conns++ {
 		select {
 		case <-error: //if readFromConsole got a "QUIT", exit program
+			wtsQChan <- true
 			break connectionLoop
 		default: //otherwise restart connections
 			if conns == 0 {
 				log.Println("STARTING...")
 			} else {
 				log.Println("RESTARTING...")
+				log.Println("WAITING 1 MINUTE...")
+				time.Sleep(time.Minute)
 			}
 			var socketRead *bufio.Reader
 			var socketWrite *bufio.Writer
@@ -233,7 +241,7 @@ connectionLoop:
 				log.Printf("Connecting to %s:%d...\n", config.Server, config.Port)
 				socket, err := textproto.Dial("tcp", fmt.Sprintf("%s:%d", config.Server, config.Port))
 				if err != nil {
-					errOut(err, quit)
+					errOut(err, quitChans)
 					return
 				}
 				socketWrite = socket.Writer.W
@@ -247,7 +255,7 @@ connectionLoop:
 			}
 			log.Print("NICK " + config.Nick + "\r\n")
 			if err != nil {
-				errOut(err, quit)
+				errOut(err, quitChans)
 			}
 			_, err = socketWrite.WriteString("USER " + config.Nick + " " + config.Hostname + " * :yaircb\r\n")
 			if err == nil {
@@ -255,11 +263,13 @@ connectionLoop:
 			}
 			log.Print("USER " + config.Nick + " " + config.Hostname + " * :yaircb\r\n")
 			if err != nil {
-				errOut(err, quit)
+				errOut(err, quitChans)
 			}
 			wgSrv.Add(1)
 			//launch routine to write server output to console
-			go readFromServer(socketRead, readChan, &wgSrv, quit)
+			rfsQChan := make(chan bool, 1)
+			quitChans <- rfsQChan
+			go readFromServer(socketRead, readChan, &wgSrv, rfsQChan, quitChans)
 			//join first channel
 			/*err = socket.Writer.PrintfLine("JOIN #ttestt")
 			if err != nil {
@@ -271,12 +281,14 @@ connectionLoop:
 					err = socketWrite.Flush()
 				}
 				if err != nil {
-					errOut(err, quit)
+					errOut(err, quitChans)
 				}
 			}
 			wgSrv.Add(1)
 			//launch routine to send to server and get input from console
-			go writeToServer(socketWrite, writeChan, &wgSrv, quit)
+			wtsQChan := make(chan bool, 1)
+			quitChans <- wtsQChan
+			go writeToServer(socketWrite, writeChan, &wgSrv, wtsQChan, quitChans)
 			wgSrv.Wait()
 		}
 	}
