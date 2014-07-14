@@ -3,4 +3,6 @@
  "Nick": "yaircb",
  "NickServPass": "correcthorsebatterystaple",
  "Hostname": "example.com",
- "TLS": false}
+ "TLS": false
+ "Admins": ["nick@host1", "nick@host2", "nick2@host3"]
+}

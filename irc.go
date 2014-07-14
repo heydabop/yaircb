@@ -33,6 +33,7 @@ type JSONconfig struct {
 	NickServPass string
 	Hostname     string
 	TLS          bool
+	Admins       []string
 }
 
 //output err
@@ -173,7 +174,7 @@ func main() {
 	if err == nil {
 		json.Unmarshal(configFile, &config)
 	} else {
-		config = JSONconfig{"chat.freenode.net", 6697, "yaircb", "", "*", false}
+		config = JSONconfig{"chat.freenode.net", 6697, "yaircb", "", "*", false, make([]string, 0)}
 	}
 
 	//set up command detection regular expressions
