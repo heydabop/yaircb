@@ -40,9 +40,10 @@ func errOut(err error, quitChans chan chan bool) {
 	log.Println("ERROR: ", err.Error())
 	debug.PrintStack()
 	log.Println("EXITING")
-	chanLoop: for {
+chanLoop:
+	for {
 		select {
-		case quit := <- quitChans:
+		case quit := <-quitChans:
 			quit <- true
 			close(quit)
 		default:
@@ -205,7 +206,7 @@ func main() {
 	error := make(chan bool, 1) //used to indicate readFromConsole exited
 	//initiate connection
 	wg.Add(2)
-	go readFromConsole(writeChan, &wg, error, quitChans)   //doesnt get restarted on connection EOF
+	go readFromConsole(writeChan, &wg, error, quitChans) //doesnt get restarted on connection EOF
 	wtsQChan := make(chan bool, 1)
 	go writeToConsole(readChan, writeChan, &wg, wtsQChan, quitChans) //doesnt get restarted on connection EOF
 connectionLoop:
