@@ -37,6 +37,7 @@ var helpStrings = map[string]string{
 	"coin":      "Displays either heads or tails.",
 	"excuse":    "Fetches an excuse from http://programmingexcuses.com/",
 	"join":      "Joins channel(s) supplied as argument(s). Admin only command",
+	"part":      "Parts channel(s) supplied as argument(s). Admin only command",
 }
 
 //command is the format for all bot command functions. The chan string is used to send generated output to the server;
@@ -71,6 +72,7 @@ func initMap() map[string]command {
 		"coin":      command(coin),
 		"excuse":    command(excuse),
 		"join":      command(join),
+		"part":      command(part),
 	}
 }
 
@@ -564,7 +566,7 @@ func excuse(srvChan chan string, channel, nick, hostname string, args []string) 
 	log.Println(message)
 }
 
-//join joins channel supplied as argument. Admin only command
+//join joins channel(s) supplied as argument(s). Admin only command
 func join(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :"
 	if len(args) < 1 {
@@ -576,6 +578,29 @@ func join(srvChan chan string, channel, nick, hostname string, args []string) {
 				joinMessage := "JOIN " + strings.Join(args, " ")
 				srvChan <- joinMessage
 				log.Println(joinMessage)
+				return
+			}
+		}
+		message += nick + " IS UNAUTHORIZED."
+	} else {
+		message += "I don't know who " + nick + " is. Please verify yourself."
+	}
+	srvChan <- message
+	log.Println(message)
+}
+
+//part parts channel(s) supplied as argument(s). Admin only command
+func part(srvChan chan string, channel, nick, hostname string, args []string) {
+	message := "PRIVMSG " + channel + " :"
+	if len(args) < 1 {
+		message += "ERROR: Not enough arguments."
+	} else if checkVerified(nick, hostname) {
+		for _, admin := range config.Admins {
+			adminNickHost := strings.Split(admin, "@")
+			if nick == adminNickHost[0] && hostname == adminNickHost[1] {
+				partMessage := "PART " + strings.Join(args, " ")
+				srvChan <- partMessage
+				log.Println(partMessage)
 				return
 			}
 		}
