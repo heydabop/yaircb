@@ -82,6 +82,18 @@ func initCmdRedis() {
 	}
 }
 
+func checkVerified(uname, hostname string) bool {
+	reply := cmdDb.Cmd("get", uname+"Host")
+	hostnameDb, err := reply.Bytes()
+	if err != nil {
+		log.Println(err.Error())
+	}
+	if hostname == string(hostnameDb) {
+		return true
+	}
+	return false
+}
+
 //source outputs a link to the repository on github
 func source(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :https://github.com/heydabop/yaircb"
@@ -167,15 +179,10 @@ func verified(srvChan chan string, channel, nick, hostname string, args []string
 		message += ":ERROR: Invalid number of arguments"
 	} else {
 		uname := args[0]
-		reply := cmdDb.Cmd("get", uname+"Host")
-		hostnameDb, err := reply.Bytes()
-		if err != nil {
-			log.Println(err.Error())
-		}
-		if hostname == string(hostnameDb) {
-			message += ":You are " + uname + " at " + hostname
+		if checkVerified(uname, hostname) {
+			message += "You are " + uname + " at " + hostname
 		} else {
-			message += ":You are not " + uname
+			message += "You are not " + uname
 		}
 	}
 	log.Println(message)
