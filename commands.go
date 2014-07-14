@@ -36,6 +36,7 @@ var helpStrings = map[string]string{
 	"dice":      "Displays a number in the range [1, 6].",
 	"coin":      "Displays either heads or tails.",
 	"excuse":    "Fetches an excuse from http://programmingexcuses.com/",
+	"join":      "Joins channel supplied as argument. Admin only command",
 }
 
 //command is the format for all bot command functions. The chan string is used to send generated output to the server;
@@ -83,6 +84,7 @@ func initCmdRedis() {
 	}
 }
 
+//returns true if uname@hostname is verified with a webserver username
 func checkVerified(uname, hostname string) bool {
 	reply := cmdDb.Cmd("get", uname+"Host")
 	hostnameDb, err := reply.Bytes()
@@ -562,6 +564,7 @@ func excuse(srvChan chan string, channel, nick, hostname string, args []string) 
 	log.Println(message)
 }
 
+//join joins channel supplied as argument. Admin only command
 func join(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :"
 	if len(args) < 1 {
