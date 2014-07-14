@@ -566,7 +566,7 @@ func join(srvChan chan string, channel, nick, hostname string, args []string) {
 	message := "PRIVMSG " + channel + " :"
 	if len(args) < 1 {
 		message += "ERROR: Not enough arguments."
-	} else 	if checkVerified(nick, hostname) {
+	} else if checkVerified(nick, hostname) {
 		for _, admin := range config.Admins {
 			adminNickHost := strings.Split(admin, "@")
 			if nick == adminNickHost[0] && hostname == adminNickHost[1] {
