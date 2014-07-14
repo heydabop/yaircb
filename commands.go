@@ -69,6 +69,7 @@ func initMap() map[string]command {
 		"dice":      command(dice),
 		"coin":      command(coin),
 		"excuse":    command(excuse),
+		"join":      command(join),
 	}
 }
 
@@ -556,6 +557,28 @@ func excuse(srvChan chan string, channel, nick, hostname string, args []string) 
 	} else {
 		log.Println("ERROR: No match")
 		return
+	}
+	srvChan <- message
+	log.Println(message)
+}
+
+func join(srvChan chan string, channel, nick, hostname string, args []string) {
+	message := "PRIVMSG " + channel + " :"
+	if len(args) < 1 {
+		message += "ERROR: Not enough arguments."
+	} else 	if checkVerified(nick, hostname) {
+		for _, admin := range config.Admins {
+			adminNickHost := strings.Split(admin, "@")
+			if nick == adminNickHost[0] && hostname == adminNickHost[1] {
+				joinMessage := "JOIN " + args[0]
+				srvChan <- joinMessage
+				log.Println(joinMessage)
+				return
+			}
+		}
+		message += nick + " IS UNAUTHORIZED."
+	} else {
+		message += "I don't know who " + nick + " is. Please verify yourself."
 	}
 	srvChan <- message
 	log.Println(message)
