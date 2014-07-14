@@ -265,12 +265,14 @@ connectionLoop:
 			if err != nil {
 				errOut(err, quit)
 			}*/
-			_, err = socketWrite.WriteString("PRIVMSG NickServ :IDENTIFY " + config.NickServPass + "\r\n")
-			if err == nil {
-				err = socketWrite.Flush()
-			}
-			if err != nil {
-				errOut(err, quit)
+			if config.NickServPass != "" {
+				_, err = socketWrite.WriteString("PRIVMSG NickServ :IDENTIFY " + config.NickServPass + "\r\n")
+				if err == nil {
+					err = socketWrite.Flush()
+				}
+				if err != nil {
+					errOut(err, quit)
+				}
 			}
 			wgSrv.Add(1)
 			//launch routine to send to server and get input from console
