@@ -36,7 +36,7 @@ var helpStrings = map[string]string{
 	"dice":      "Displays a number in the range [1, 6].",
 	"coin":      "Displays either heads or tails.",
 	"excuse":    "Fetches an excuse from http://programmingexcuses.com/",
-	"join":      "Joins channel supplied as argument. Admin only command",
+	"join":      "Joins channel(s) supplied as argument(s). Admin only command",
 }
 
 //command is the format for all bot command functions. The chan string is used to send generated output to the server;
@@ -573,7 +573,7 @@ func join(srvChan chan string, channel, nick, hostname string, args []string) {
 		for _, admin := range config.Admins {
 			adminNickHost := strings.Split(admin, "@")
 			if nick == adminNickHost[0] && hostname == adminNickHost[1] {
-				joinMessage := "JOIN " + args[0]
+				joinMessage := "JOIN " + strings.Join(args, " ")
 				srvChan <- joinMessage
 				log.Println(joinMessage)
 				return
