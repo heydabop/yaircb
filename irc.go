@@ -129,7 +129,7 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 				for _, regexp := range regexpCmds {
 					if match = regexp.FindStringSubmatch(line); match != nil {
 						cmdArgs := strings.Fields(match[5]) //first word is command, the rest (if any) are args for the command
-						if cmd, valid := funcMap[cmdArgs[0]]; valid {
+						if cmd, valid := funcMap[strings.ToLower(cmdArgs[0])]; valid {
 							if match[4] == config.Nick {
 								match[4] = match[1]
 							}
