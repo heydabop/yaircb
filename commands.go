@@ -575,7 +575,7 @@ func join(srvChan chan string, channel, nick, hostname string, args []string) {
 		for _, admin := range config.Admins {
 			adminNickHost := strings.Split(admin, "@")
 			if nick == adminNickHost[0] && hostname == adminNickHost[1] {
-				joinMessage := "JOIN " + strings.Join(args, " ")
+				joinMessage := "JOIN " + strings.Join(args, ",")
 				srvChan <- joinMessage
 				log.Println(joinMessage)
 				return
@@ -598,7 +598,7 @@ func part(srvChan chan string, channel, nick, hostname string, args []string) {
 		for _, admin := range config.Admins {
 			adminNickHost := strings.Split(admin, "@")
 			if nick == adminNickHost[0] && hostname == adminNickHost[1] {
-				partMessage := "PART " + strings.Join(args, " ")
+				partMessage := "PART " + strings.Join(args, ",")
 				srvChan <- partMessage
 				log.Println(partMessage)
 				return
