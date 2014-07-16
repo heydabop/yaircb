@@ -535,6 +535,8 @@ func ctcp(srvChan chan string, channel, nick, hostname string, args []string) {
 	case "CLIENTINFO":
 		message += "CLIENTINFO FINGER VERSION SOURCE CLIENTINFO PING TIME"
 		break
+	default: //ACTION
+		return
 	}
 	message += "\x01"
 	srvChan <- message
