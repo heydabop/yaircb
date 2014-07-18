@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var cmdDb *redis.Client
@@ -123,11 +124,14 @@ func register(srvChan chan string, channel, nick, hostname string, args []string
 //uptime outputs the command 'uptime'
 func uptime(srvChan chan string, channel, nick, hostname string, args []string) {
 	out, err := exec.Command("uptime").Output()
-	message := "PRIVMSG " + channel + " :" + strings.TrimSpace(string(out))
 	if err != nil {
 		log.Println(err)
 		return
 	}
+	outFields := strings.Split(strings.TrimSpace(string(out)), ",")
+	message := "PRIVMSG " + channel + " :System: " + strings.Join(outFields[:2], ",")
+	selfUptime := time.Since(startTime)
+	message += fmt.Sprintf(" || Self: %d days, %02d:%02d", int(selfUptime.Hours())/24, int(selfUptime.Hours())%24, int(selfUptime.Minutes()))
 	log.Println(message)
 	srvChan <- message
 }

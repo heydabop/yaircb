@@ -24,6 +24,7 @@ var (
 	funcMap    map[string]command
 	regexpCmds []*regexp.Regexp
 	config     JSONconfig
+	startTime  time.Time
 )
 
 type JSONconfig struct {
@@ -167,6 +168,7 @@ func readFromConsole(srvChan chan string, wg *sync.WaitGroup, error chan bool, q
 }
 
 func main() {
+	startTime = time.Now()
 	runtime.GOMAXPROCS(4)
 	rand.Seed(time.Now().Unix())
 	//read in bot config, or initialize default config
