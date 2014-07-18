@@ -131,7 +131,7 @@ func uptime(srvChan chan string, channel, nick, hostname string, args []string) 
 	outFields := strings.Split(strings.TrimSpace(string(out)), ",")
 	message := "PRIVMSG " + channel + " :System: " + strings.Join(outFields[:2], ",")
 	selfUptime := time.Since(startTime)
-	message += fmt.Sprintf(" || Self: %d days, %02d:%02d", int(selfUptime.Hours())/24, int(selfUptime.Hours())%24, int(selfUptime.Minutes()))
+	message += fmt.Sprintf(" || Self: %d days, %02d:%02d", int(selfUptime.Hours())/24, int(selfUptime.Hours())%24, int(selfUptime.Minutes())%60)
 	log.Println(message)
 	srvChan <- message
 }
