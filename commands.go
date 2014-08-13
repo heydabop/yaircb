@@ -102,21 +102,21 @@ func checkVerified(uname, hostname string) bool {
 
 //source outputs a link to the repository on github
 func source(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :https://github.com/heydabop/yaircb"
+	message := "NOTICE " + channel + " :https://github.com/heydabop/yaircb"
 	log.Println(message)
 	srvChan <- message
 }
 
 //botsnack outputs a pointless message
 func botsnack(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :Kisses commend. Perplexities deprave."
+	message := "NOTICE " + channel + " :Kisses commend. Perplexities deprave."
 	log.Println(message)
 	srvChan <- message
 }
 
 //register outputs a link to register with the webserver
 func register(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :https://anex.us/register/"
+	message := "NOTICE " + channel + " :https://anex.us/register/"
 	log.Println(message)
 	srvChan <- message
 }
@@ -129,7 +129,7 @@ func uptime(srvChan chan string, channel, nick, hostname string, args []string) 
 		return
 	}
 	outFields := strings.Split(strings.TrimSpace(string(out)), ",")
-	message := "PRIVMSG " + channel + " :System: " + strings.Join(outFields[:2], ",")
+	message := "NOTICE " + channel + " :System: " + strings.Join(outFields[:2], ",")
 	selfUptime := time.Since(startTime)
 	message += fmt.Sprintf(" || Self: %d days, %02d:%02d", int(selfUptime.Hours())/24, int(selfUptime.Hours())%24, int(selfUptime.Minutes())%60)
 	log.Println(message)
@@ -138,14 +138,14 @@ func uptime(srvChan chan string, channel, nick, hostname string, args []string) 
 
 //web outputs a link to the homepage of the webserver
 func web(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :https://anex.us/"
+	message := "NOTICE " + channel + " :https://anex.us/"
 	log.Println(message)
 	srvChan <- message
 }
 
 //login outputs a link to the login page of the webserver
 func login(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :https://anex.us/login/"
+	message := "NOTICE " + channel + " :https://anex.us/login/"
 	log.Println(message)
 	srvChan <- message
 }
@@ -155,9 +155,9 @@ func login(srvChan chan string, channel, nick, hostname string, args []string) {
 //If the username and PIN match those displayed on a user page on the webserver, then the IRC nick@hostname and webserver
 //username become associated to each other.
 func verify(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :"
+	message := "NOTICE " + channel + " :"
 	if len(args) != 2 {
-		message = "PRIVMSG " + channel + " :ERROR: Invalid number of arguments"
+		message = "NOTICE " + channel + " :ERROR: Invalid number of arguments"
 	} else {
 		uname := args[0]
 		pin := args[1]
@@ -183,7 +183,7 @@ func verify(srvChan chan string, channel, nick, hostname string, args []string) 
 //verified <username>
 //If the IRC nick@hostname is associated to the webserver username, that state is indicated by the bot's response.
 func verified(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :"
+	message := "NOTICE " + channel + " :"
 	if len(args) != 1 {
 		message += ":ERROR: Invalid number of arguments"
 	} else {
@@ -202,7 +202,7 @@ func verified(srvChan chan string, channel, nick, hostname string, args []string
 //help <command>
 //returns string from helpStrings overviewing command
 func help(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :"
+	message := "NOTICE " + channel + " :"
 	if len(args) == 0 {
 		message += "Try help <command>. For a list of commands try 'yaircb: commands'"
 	} else if len(args) != 1 {
@@ -220,7 +220,7 @@ func help(srvChan chan string, channel, nick, hostname string, args []string) {
 
 //commands outputs every publicly callable command
 func commands(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :"
+	message := "NOTICE " + channel + " :"
 	for command := range funcMap {
 		message += command + " "
 	}
@@ -238,7 +238,7 @@ func kick(srvChan chan string, channel, nick, hostname string, args []string) {
 
 	message = "KICK " + channel
 	if len(args) < 1 {
-		message = "PRIVMSG " + channel + " :ERROR: Invalid number of arguments"
+		message = "NOTICE " + channel + " :ERROR: Invalid number of arguments"
 	} else {
 		if args[0] == config.Nick {
 			return
@@ -256,7 +256,7 @@ func kick(srvChan chan string, channel, nick, hostname string, args []string) {
 //wc <nick>
 //wc outputs the number of messages nick has said in channel
 func wc(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :"
+	message := "NOTICE " + channel + " :"
 	if len(args) != 1 {
 		message += "ERROR: Invalid number of arguments"
 	} else {
@@ -293,7 +293,7 @@ func wc(srvChan chan string, channel, nick, hostname string, args []string) {
 //top <n>
 //top outputs the most active n users, by outputting their nicks and the number of messages in channel
 func top(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :"
+	message := "NOTICE " + channel + " :"
 	if len(args) != 1 {
 		message += "ERROR: Invalid number of arguments"
 	} else {
@@ -355,7 +355,7 @@ func top(srvChan chan string, channel, nick, hostname string, args []string) {
 //with a question mark.
 //yesNo randomly outputs "Yes." or "No."
 func yesNo(srvChan chan string, channel, nick, hostname string) {
-	message := "PRIVMSG " + channel + " :"
+	message := "NOTICE " + channel + " :"
 	x := rand.Intn(2)
 	if x == 1 {
 		message += "Yes."
@@ -368,7 +368,7 @@ func yesNo(srvChan chan string, channel, nick, hostname string) {
 
 //footprint outputs the resident memory usage of the process
 func footprint(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :"
+	message := "NOTICE " + channel + " :"
 	pid := os.Getpid()
 	out, err := exec.Command("grep", "VmRSS", "/proc/"+fmt.Sprintf("%d", pid)+"/status").Output()
 	if err != nil {
@@ -412,7 +412,7 @@ func commit(srvChan chan string, channel, nick, hostname string, args []string) 
 		Id      string
 		LongUrl string
 	}
-	message := "PRIVMSG " + channel + " :"
+	message := "NOTICE " + channel + " :"
 	since := rand.Intn(1000000)
 	res, err := http.Get("https://api.github.com/repositories?since=" + fmt.Sprintf("%d", since))
 	if err != nil {
@@ -467,7 +467,7 @@ func commit(srvChan chan string, channel, nick, hostname string, args []string) 
 
 //offensive displays a potentially offensive statement
 func offensive(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :"
+	message := "NOTICE " + channel + " :"
 	out, err := exec.Command("fortune", "-os").Output()
 	if err != nil {
 		log.Println(err.Error())
@@ -481,14 +481,14 @@ func offensive(srvChan chan string, channel, nick, hostname string, args []strin
 
 //dice displays a number in the range [1, 6]
 func dice(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :" + fmt.Sprintf("%d", rand.Intn(6)+1)
+	message := "NOTICE " + channel + " :" + fmt.Sprintf("%d", rand.Intn(6)+1)
 	log.Println(message)
 	srvChan <- message
 }
 
 //coin displays either heads or tails
 func coin(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :"
+	message := "NOTICE " + channel + " :"
 	if rand.Intn(2) == 0 {
 		message += "Heads."
 	} else {
@@ -549,7 +549,7 @@ func ctcp(srvChan chan string, channel, nick, hostname string, args []string) {
 
 //excuse fetches an excuse from http://programmingexcuses.com/
 func excuse(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :"
+	message := "NOTICE " + channel + " :"
 	res, err := http.Get("http://programmingexcuses.com/")
 	if err != nil {
 		log.Println(err.Error())
@@ -574,7 +574,7 @@ func excuse(srvChan chan string, channel, nick, hostname string, args []string) 
 
 //join joins channel(s) supplied as argument(s). Admin only command
 func join(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :"
+	message := "NOTICE " + channel + " :"
 	if len(args) < 1 {
 		message += "ERROR: Not enough arguments."
 	} else if checkVerified(nick, hostname) {
@@ -597,7 +597,7 @@ func join(srvChan chan string, channel, nick, hostname string, args []string) {
 
 //part parts channel(s) supplied as argument(s). Admin only command
 func part(srvChan chan string, channel, nick, hostname string, args []string) {
-	message := "PRIVMSG " + channel + " :"
+	message := "NOTICE " + channel + " :"
 	if len(args) < 1 {
 		message += "ERROR: Not enough arguments."
 	} else if checkVerified(nick, hostname) {
