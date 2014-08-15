@@ -109,6 +109,7 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 	pingRegex := regexp.MustCompile("^PING (.*)")
 	questionRegex := regexp.MustCompile(`^:(\S*?)!(\S*?)@(\S*?) PRIVMSG (\S*) :` + config.Nick + `.*\?`)
 	ctcpRegex := regexp.MustCompile(`^:(\S*?)!(\S*?)@(\S*?) PRIVMSG (\S*) :` + "\x01" + `(.*?)` + "\x01" + `$`)
+	inviteRegex :=  regexp.MustCompile(`^:(\S*)?!(\S*)?@(\S*)? INVITE (` + config.Nick + `) :\s*(.*)`)
 
 	//read every line from the server chan and print to console
 	for {
@@ -125,6 +126,8 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 				go yesNo(writeChan, match[4], match[1], match[3]) //reply Yes or No if bot was asked a question
 			} else if match := ctcpRegex.FindStringSubmatch(line); match != nil {
 				go ctcp(writeChan, match[4], match[1], match[3], strings.Fields(match[5])) //reply with CTCP if CTCP request was received
+			} else if match := inviteRegex.FindStringSubmatch(line); match != nil {
+				writeChan <- "JOIN " + match[5]
 			} else {
 				var match []string
 				for _, regexp := range regexpCmds {
