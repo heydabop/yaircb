@@ -143,6 +143,9 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 					}
 				}
 			}
+			break
+		case <-time.After(600 * time.Second):
+			errOut(errors.New("Server read timeout"), quitChans)
 		}
 	}
 }
