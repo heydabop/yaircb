@@ -78,13 +78,10 @@ func initMap() map[string]command {
 }
 
 //initCmdRedis initializes the global variable cmdDb via the local database
-func initCmdRedis() {
+func initCmdRedis() error {
 	var err error
 	cmdDb, err = redis.Dial("tcp", "127.0.0.1:6379")
-	if err != nil {
-		log.Println(err)
-		os.Exit(1)
-	}
+	return err
 }
 
 //returns true if uname@hostname is verified with a webserver username

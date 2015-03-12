@@ -193,18 +193,23 @@ func main() {
 
 	//initialize global string->function command map
 	funcMap = initMap()
-	initCmdRedis()
+	err = initCmdRedis()
+	if err != nil { //if redis init fails, print error
+		log.Println(err)
+	}
 
-	//initialize web server
-	initWebRedis()
-	http.Handle("/resources/", http.StripPrefix("/resources/", http.FileServer(http.Dir("resources"))))
-	http.HandleFunc("/register/", registerHandler)
-	http.HandleFunc("/login/", loginHandler)
-	http.HandleFunc("/loginCheck/", loginCheckHandler)
-	http.HandleFunc("/", indexHandler)
-	http.HandleFunc("/save/", saveHandler)
-	http.HandleFunc("/user/", userHandler)
-	go http.ListenAndServeTLS(":8080", "ssl.crt", "ssl.pem", nil)
+	if err == nil { //only run web server is redis init doesn't fail
+		//initialize web server
+		initWebRedis()
+		http.Handle("/resources/", http.StripPrefix("/resources/", http.FileServer(http.Dir("resources"))))
+		http.HandleFunc("/register/", registerHandler)
+		http.HandleFunc("/login/", loginHandler)
+		http.HandleFunc("/loginCheck/", loginCheckHandler)
+		http.HandleFunc("/", indexHandler)
+		http.HandleFunc("/save/", saveHandler)
+		http.HandleFunc("/user/", userHandler)
+		go http.ListenAndServeTLS(":8080", "ssl.crt", "ssl.pem", nil)
+	}
 
 	var conns uint16
 	writeChan := make(chan string) //used to send strings from readFromConsole to writeToServer
