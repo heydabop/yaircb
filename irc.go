@@ -113,12 +113,20 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 
 	//read every line from the server chan and print to console
 	for {
+		lastPing := time.Now().Add((-6) * time.Minute) //time of last PING (initialize to 6 minutes ago)
+		betweenPings := time.Now().Sub(lastPing) //time between last two PINGs
+		pingTimer := time.After(betweenPings * 2)
+
 		select {
 		case <-quit: //exit if indicated
 			return
 		case line := <-readChan:
 			log.Println(line)
 			if match := pingRegex.FindStringSubmatch(line); match != nil {
+				betweenPings = time.Now().Sub(lastPing)
+				lastPing = time.Now()
+				pingTimer = time.After(betweenPings * 2)
+
 				//respond to PING from server
 				writeChan <- ("PONG " + match[1])
 				log.Println("PONG", match[1])
@@ -144,7 +152,7 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 				}
 			}
 			break
-		case <-time.After(600 * time.Second):
+		case <-pingTimer:
 			errOut(errors.New("Server read timeout"), quitChans)
 		}
 	}
