@@ -35,6 +35,7 @@ type JSONconfig struct {
 	Hostname     string
 	TLS          bool
 	Admins       []string
+	Channels     []string
 }
 
 //output err
@@ -109,12 +110,12 @@ func writeToConsole(readChan chan string, writeChan chan string, wg *sync.WaitGr
 	pingRegex := regexp.MustCompile("^PING (.*)")
 	questionRegex := regexp.MustCompile(`^:(\S*?)!(\S*?)@(\S*?) PRIVMSG (\S*) :` + config.Nick + `.*\?`)
 	ctcpRegex := regexp.MustCompile(`^:(\S*?)!(\S*?)@(\S*?) PRIVMSG (\S*) :` + "\x01" + `(.*?)` + "\x01" + `$`)
-	inviteRegex :=  regexp.MustCompile(`^:(\S*)?!(\S*)?@(\S*)? INVITE (` + config.Nick + `) :\s*(.*)`)
+	inviteRegex := regexp.MustCompile(`^:(\S*)?!(\S*)?@(\S*)? INVITE (` + config.Nick + `) :\s*(.*)`)
 
 	//read every line from the server chan and print to console
 	for {
 		lastPing := time.Now().Add((-6) * time.Minute) //time of last PING (initialize to 6 minutes ago)
-		betweenPings := time.Now().Sub(lastPing) //time between last two PINGs
+		betweenPings := time.Now().Sub(lastPing)       //time between last two PINGs
 		pingTimer := time.After(betweenPings * 2)
 
 		select {
@@ -190,7 +191,7 @@ func main() {
 	if err == nil {
 		json.Unmarshal(configFile, &config)
 	} else {
-		config = JSONconfig{"chat.freenode.net", 6697, "yaircb", "", "*", false, make([]string, 0)}
+		config = JSONconfig{"chat.freenode.net", 6697, "yaircb", "", "*", false, make([]string, 0), make([]string, 0)}
 	}
 
 	//set up command detection regular expressions
@@ -312,6 +313,14 @@ connectionLoop:
 			wtsQChan := make(chan bool, 1)
 			quitChans <- wtsQChan
 			go writeToServer(socketWrite, writeChan, &wgSrv, wtsQChan, quitChans)
+			if len(config.Channels) > 0 { //join supplied channels upon connection
+				joinMsg := "JOIN "
+				for _, channel := range config.Channels {
+					joinMsg += channel + ","
+				}
+				log.Println(joinMsg[:len(joinMsg)-1])
+				writeChan <- joinMsg[:len(joinMsg)-1]
+			}
 			wgSrv.Wait()
 		}
 	}

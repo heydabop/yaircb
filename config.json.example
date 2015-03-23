@@ -1,8 +1,10 @@
-{"Server": "chat.freenode.net",
+{
+ "Server": "chat.freenode.net",
  "Port": 6667,
  "Nick": "yaircb",
  "NickServPass": "correcthorsebatterystaple",
  "Hostname": "example.com",
  "TLS": false
- "Admins": ["nick@host1", "nick@host2", "nick2@host3"]
+ "Admins": ["nick@host1", "nick@host2", "nick2@host3"],
+ "Channels":["#channel1","#channel2"]
 }
