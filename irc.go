@@ -189,10 +189,14 @@ func main() {
 	//read in bot config, or initialize default config
 	configFile, err := ioutil.ReadFile("config.json")
 	if err == nil {
-		json.Unmarshal(configFile, &config)
+		err = json.Unmarshal(configFile, &config)
+		if err != nil {
+			log.Fatal("Error unmarshalling config.json")
+		}
 	} else {
-		config = JSONconfig{"chat.freenode.net", 6697, "yaircb", "", "*", false, make([]string, 0), make([]string, 0)}
+		config = JSONconfig{"chat.freenode.net", 6667, "yaircb", "", "*", false, make([]string, 0), make([]string, 0)}
 	}
+	fmt.Println(config)
 
 	//set up command detection regular expressions
 	regexpCmds = make([]*regexp.Regexp, 3)
