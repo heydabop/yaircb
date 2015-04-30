@@ -437,14 +437,20 @@ func commit(srvChan chan string, channel, nick, hostname string, args []string) 
 	var commits []commitJSON
 	json.Unmarshal(body, &commits)
 	if len(commits) < 1 {
-		message += "ERROR: No commits in selected repository"
+		commit(srvChan, channel, nick, hostname, args) //try again
+		return
 	} else {
 		commitNum := rand.Intn(len(commits))
 		commitMsg := commits[commitNum].Commit["message"].(string)
 
+		APIkey, err := ioutil.ReadFile("APIkey")
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
 		urlReader := strings.NewReader(`{"longUrl": "` + commits[commitNum].Html_url + `"}`)
 		c := http.Client{}
-		res, err := c.Post("https://www.googleapis.com/urlshortener/v1/url", "application/json", urlReader)
+		res, err := c.Post("https://www.googleapis.com/urlshortener/v1/url?key=" + string(APIkey), "application/json", urlReader)
 		if err != nil {
 			log.Println(err.Error())
 			return
